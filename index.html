@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>IM Basketball Stat Tracker</title>
+  <style>
+    :root { --bg:#0b0f17; --card:#121a27; --muted:#8aa0b8; --text:#e9f0f7; --line:#243246; --good:#37d67a; --bad:#ff5c5c; --accent:#4da3ff; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+    header{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:16px;letter-spacing:.3px}
+    header .sub{color:var(--muted);font-size:12px}
+    main{padding:16px;max-width:1200px;margin:0 auto;display:grid;gap:14px}
+    .grid{display:grid;gap:14px;grid-template-columns: 360px 1fr}
+    @media (max-width: 960px){ .grid{grid-template-columns: 1fr} }
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+    input, select, textarea, button{
+      background:#0e1522;border:1px solid var(--line);color:var(--text);
+      padding:10px 10px;border-radius:10px;font-size:14px
+    }
+    input, select{width:100%}
+    textarea{width:100%;min-height:86px;resize:vertical}
+    button{cursor:pointer}
+    button.primary{border-color:transparent;background:var(--accent);color:#06101c;font-weight:700}
+    button.good{border-color:transparent;background:var(--good);color:#06101c;font-weight:800}
+    button.bad{border-color:transparent;background:var(--bad);color:#2b0505;font-weight:800}
+    button.ghost{background:transparent}
+    .tiny{font-size:12px;color:var(--muted)}
+    .split{display:grid;gap:10px;grid-template-columns: 1fr 1fr}
+    .statBtns{display:grid;gap:10px;grid-template-columns: repeat(4, minmax(0, 1fr))}
+    @media (max-width: 560px){ .statBtns{grid-template-columns: repeat(2, minmax(0, 1fr))} }
+    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);padding:8px 10px;border-radius:999px}
+    .tableWrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:860px}
+    th, td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:center;font-size:13px}
+    th{position:sticky;top:0;background:var(--card);z-index:1;color:var(--muted);font-weight:600}
+    td.name{text-align:left}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap}
+    .kpi .pill b{font-size:14px}
+    .dangerLine{border-top:1px dashed var(--line);margin:12px 0}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>IM Basketball Stat Tracker</h1>
+      <div class="sub">Fast buttons • Auto-saves • CSV export • Made for supervisors</div>
+    </div>
+    <div class="row">
+      <button class="ghost" id="newGameBtn">New game</button>
+      <button class="primary" id="exportBtn">Export CSV</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="pill"><span>Game</span> <b id="gameIdLabel"></b></div>
+          <div class="pill"><span>Period</span> <b id="periodLabel">1</b></div>
+        </div>
+
+        <div class="split" style="margin-top:12px">
+          <div>
+            <label>Team A name</label>
+            <input id="teamAName" placeholder="e.g., Boiler Ballers" />
+          </div>
+          <div>
+            <label>Team B name</label>
+            <input id="teamBName" placeholder="e.g., Cary Court Kings" />
+          </div>
+        </div>
+
+        <div class="split" style="margin-top:10px">
+          <div>
+            <label>Team A score</label>
+            <input id="scoreA" type="number" min="0" step="1" />
+          </div>
+          <div>
+            <label>Team B score</label>
+            <input id="scoreB" type="number" min="0" step="1" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button class="ghost" id="periodDown">- Period</button>
+          <button class="ghost" id="periodUp">+ Period</button>
+          <span class="tiny">Tip: just track period number; clock is optional.</span>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <div class="split">
+          <div>
+            <label>Select team</label>
+            <select id="teamSelect">
+              <option value="A">Team A</option>
+              <option value="B">Team B</option>
+            </select>
+          </div>
+          <div>
+            <label>Select player</label>
+            <select id="playerSelect"></select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <input id="playerNameInput" placeholder="Add player (name / #)" />
+          <button class="primary" id="addPlayerBtn">Add</button>
+        </div>
+
+        <div class="statBtns" style="margin-top:10px">
+          <button class="good" data-stat="FGM">FG Made</button>
+          <button class="bad"  data-stat="FGA">FG Miss</button>
+          <button class="good" data-stat="3PM">3PT Made</button>
+          <button class="bad"  data-stat="3PA">3PT Miss</button>
+
+          <button class="good" data-stat="FTM">FT Made</button>
+          <button class="bad"  data-stat="FTA">FT Miss</button>
+          <button data-stat="REB">Reb</button>
+          <button data-stat="AST">Ast</button>
+
+          <button data-stat="STL">Stl</button>
+          <button data-stat="BLK">Blk</button>
+          <button data-stat="TO">TO</button>
+          <button data-stat="PF">Foul</button>
+        </div>
+
+        <div class="row" style="margin-top:10px; justify-content:space-between">
+          <button class="ghost" id="undoBtn">Undo last</button>
+          <button class="ghost" id="clearTeamBtn">Clear selected team</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Notes (techs, incidents, jersey color, etc.)</label>
+          <textarea id="notes" placeholder="Optional notes..."></textarea>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="kpi" id="kpis"></div>
+        <div class="tableWrap" style="margin-top:12px">
+          <table id="statsTable"></table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // ---------- Storage ----------
+    const LS_KEY = "im_bball_stat_tracker_v1";
+
+    const uid = () => Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+
+    const blankPlayer = (name) => ({
+      id: uid(),
+      name: name.trim(),
+      FGM:0, FGA:0, _3PM:0, _3PA:0, FTM:0, FTA:0,
+      REB:0, AST:0, STL:0, BLK:0, TO:0, PF:0
+    });
+
+    const blankGame = () => ({
+      gameId: uid().slice(0,8).toUpperCase(),
+      createdAt: new Date().toISOString(),
+      teamAName: "Team A",
+      teamBName: "Team B",
+      scoreA: 0,
+      scoreB: 0,
+      period: 1,
+      notes: "",
+      rosterA: [],
+      rosterB: [],
+      events: [] // {ts, team, playerId, stat, delta, period}
+    });
+
+    let state = load() ?? blankGame();
+
+    function save() {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    }
+    function load() {
+      try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch { return null; }
+    }
+
+    // ---------- DOM ----------
+    const el = (id) => document.getElementById(id);
+
+    const gameIdLabel = el("gameIdLabel");
+    const periodLabel = el("periodLabel");
+    const teamAName = el("teamAName");
+    const teamBName = el("teamBName");
+    const scoreA = el("scoreA");
+    const scoreB = el("scoreB");
+    const teamSelect = el("teamSelect");
+    const playerSelect = el("playerSelect");
+    const playerNameInput = el("playerNameInput");
+    const notes = el("notes");
+    const statsTable = el("statsTable");
+    const kpis = el("kpis");
+
+    // Buttons
+    el("addPlayerBtn").addEventListener("click", addPlayer);
+    el("newGameBtn").addEventListener("click", () => {
+      if (!confirm("Start a new game? This will replace the current saved game.")) return;
+      state = blankGame();
+      syncUI();
+      save();
+    });
+    el("exportBtn").addEventListener("click", exportCSV);
+    el("undoBtn").addEventListener("click", undoLast);
+    el("clearTeamBtn").addEventListener("click", clearSelectedTeam);
+    el("periodUp").addEventListener("click", () => { state.period = Math.min(20, state.period + 1); periodLabel.textContent = state.period; save(); });
+    el("periodDown").addEventListener("click", () => { state.period = Math.max(1, state.period - 1); periodLabel.textContent = state.period; save(); });
+
+    teamSelect.addEventListener("change", () => { refreshPlayerDropdown(); });
+    playerNameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addPlayer(); });
+
+    notes.addEventListener("input", () => { state.notes = notes.value; save(); });
+
+    document.querySelectorAll("[data-stat]").forEach(btn => {
+      btn.addEventListener("click", () => recordStat(btn.dataset.stat));
+    });
+
+    teamAName.addEventListener("input", () => { state.teamAName = teamAName.value || "Team A"; syncUI(false); save(); });
+    teamBName.addEventListener("input", () => { state.teamBName = teamBName.value || "Team B"; syncUI(false); save(); });
+    scoreA.addEventListener("input", () => { state.scoreA = int(scoreA.value); save(); renderKPIs(); });
+    scoreB.addEventListener("input", () => { state.scoreB = int(scoreB.value); save(); renderKPIs(); });
+
+    function int(v){ const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0; }
+
+    // ---------- Logic ----------
+    function roster(team) {
+      return team === "A" ? state.rosterA : state.rosterB;
+    }
+
+    function addPlayer() {
+      const name = playerNameInput.value.trim();
+      if (!name) return;
+      const team = teamSelect.value;
+      roster(team).push(blankPlayer(name));
+      playerNameInput.value = "";
+      refreshPlayerDropdown();
+      syncUI(false);
+      save();
+    }
+
+    function getSelectedPlayer() {
+      const team = teamSelect.value;
+      const pid = playerSelect.value;
+      const p = roster(team).find(x => x.id === pid);
+      return { team, player: p };
+    }
+
+    function recordStat(stat) {
+      const { team, player } = getSelectedPlayer();
+      if (!player) {
+        alert("Add/select a player first.");
+        return;
+      }
+
+      // Map click into actual counters:
+      // FG Miss -> FGA +1
+      // FG Made -> FGM +1 and FGA +1
+      // same for 3PT and FT
+      const ts = new Date().toISOString();
+      const period = state.period;
+
+      const apply = (s, delta) => {
+        player[s] += delta;
+        state.events.push({ ts, team, playerId: player.id, stat: s, delta, period });
+      };
+
+      if (stat === "FGM") { apply("FGM", 1); apply("FGA", 1); bumpScore(team, 2); }
+      else if (stat === "FGA") { apply("FGA", 1); }
+      else if (stat === "3PM") { apply("_3PM", 1); apply("_3PA", 1); bumpScore(team, 3); }
+      else if (stat === "3PA") { apply("_3PA", 1); }
+      else if (stat === "FTM") { apply("FTM", 1); apply("FTA", 1); bumpScore(team, 1); }
+      else if (stat === "FTA") { apply("FTA", 1); }
+      else { apply(stat, 1); }
+
+      save();
+      renderTable();
+      renderKPIs();
+    }
+
+    function bumpScore(team, pts) {
+      if (team === "A") { state.scoreA += pts; scoreA.value = state.scoreA; }
+      else { state.scoreB += pts; scoreB.value = state.scoreB; }
+    }
+
+    function undoLast() {
+      const last = state.events.pop();
+      if (!last) return;
+
+      const p = roster(last.team).find(x => x.id === last.playerId);
+      if (p) p[last.stat] -= last.delta;
+
+      // Undo auto-score only if the last event was a made shot recorded by this app:
+      // We can infer by stat name:
+      if (last.stat === "FGM") { state.score(last.team) }
+      // Instead of guessing, we do a safer approach: recompute scores from events.
+      recomputeScoresFromEvents();
+
+      save();
+      renderTable();
+      renderKPIs();
+    }
+
+    function recomputeScoresFromEvents() {
+      let a = 0, b = 0;
+      for (const e of state.events) {
+        // Points only come from made stats
+        if (e.stat === "FGM") (e.team === "A" ? a : b) += 2;
+        if (e.stat === "_3PM") (e.team === "A" ? a : b) += 3;
+        if (e.stat === "FTM") (e.team === "A" ? a : b) += 1;
+      }
+      state.scoreA = a; state.scoreB = b;
+      scoreA.value = a; scoreB.value = b;
+    }
+
+    function clearSelectedTeam() {
+      const team = teamSelect.value;
+      if (!confirm(`Clear roster + stats for ${team === "A" ? state.teamAName : state.teamBName}?`)) return;
+      if (team === "A") state.rosterA = [];
+      else state.rosterB = [];
+      // Also remove events for that team
+      state.events = state.events.filter(e => e.team !== team);
+      recomputeScoresFromEvents();
+      refreshPlayerDropdown();
+      renderTable();
+      renderKPIs();
+      save();
+    }
+
+    function pct(m, a) { return a > 0 ? (m / a * 100) : 0; }
+
+    function points(p) {
+      return (p.FGM - p._3PM) * 2 + p._3PM * 3 + p.FTM;
+    }
+
+    function renderKPIs() {
+      const totals = (team) => {
+        const r = roster(team);
+        const t = { pts:0, fgm:0, fga:0, tpm:0, tpa:0, ftm:0, fta:0, reb:0, ast:0, stl:0, blk:0, to:0, pf:0 };
+        for (const p of r) {
+          t.pts += points(p);
+          t.fgm += p.FGM; t.fga += p.FGA;
+          t.tpm += p._3PM; t.tpa += p._3PA;
+          t.ftm += p.FTM; t.fta += p.FTA;
+          t.reb += p.REB; t.ast += p.AST; t.stl += p.STL; t.blk += p.BLK; t.to += p.TO; t.pf += p.PF;
+        }
+        return t;
+      };
+
+      const A = totals("A"), B = totals("B");
+
+      const pill = (label, value) => `<div class="pill"><span>${label}</span> <b>${value}</b></div>`;
+
+      kpis.innerHTML = [
+        pill(state.teamAName, `${state.scoreA} pts • FG ${A.fgm}/${A.fga} (${pct(A.fgm,A.fga).toFixed(0)}%) • 3PT ${A.tpm}/${A.tpa}`),
+        pill(state.teamBName, `${state.scoreB} pts • FG ${B.fgm}/${B.fga} (${pct(B.fgm,B.fga).toFixed(0)}%) • 3PT ${B.tpm}/${B.tpa}`),
+        pill("Period", state.period),
+        pill("Events", state.events.length),
+      ].join("");
+    }
+
+    function renderTable() {
+      const headers = ["Player","PTS","FGM","FGA","FG%","3PM","3PA","3P%","FTM","FTA","FT%","REB","AST","STL","BLK","TO","PF"];
+      const mkRow = (p) => {
+        const fgP = pct(p.FGM,p.FGA).toFixed(0) + "%";
+        const tpP = pct(p._3PM,p._3PA).toFixed(0) + "%";
+        const ftP = pct(p.FTM,p.FTA).toFixed(0) + "%";
+        return `
+          <tr>
+            <td class="name">${escapeHtml(p.name)}</td>
+            <td>${points(p)}</td>
+            <td>${p.FGM}</td><td>${p.FGA}</td><td>${fgP}</td>
+            <td>${p._3PM}</td><td>${p._3PA}</td><td>${tpP}</td>
+            <td>${p.FTM}</td><td>${p.FTA}</td><td>${ftP}</td>
+            <td>${p.REB}</td><td>${p.AST}</td><td>${p.STL}</td><td>${p.BLK}</td>
+            <td>${p.TO}</td><td>${p.PF}</td>
+          </tr>
+        `;
+      };
+
+      const section = (teamName, teamRoster) => {
+        return `
+          <thead>
+            <tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            <tr><td class="name" colspan="${headers.length}" style="text-align:left;color:var(--muted);font-weight:700">
+              ${escapeHtml(teamName)}
+            </td></tr>
+            ${teamRoster.map(mkRow).join("") || `<tr><td colspan="${headers.length}" class="tiny">No players yet.</td></tr>`}
+          </tbody>
+        `;
+      };
+
+      statsTable.innerHTML = section(state.teamAName, state.rosterA) + section(state.teamBName, state.rosterB);
+    }
+
+    function exportCSV() {
+      const rows = [];
+      rows.push(["GameId", state.gameId]);
+      rows.push(["CreatedAt", state.createdAt]);
+      rows.push(["Period", state.period]);
+      rows.push(["TeamA", state.teamAName, "Score", state.scoreA]);
+      rows.push(["TeamB", state.teamBName, "Score", state.scoreB]);
+      rows.push([]);
+      rows.push(["Team","Player","PTS","FGM","FGA","3PM","3PA","FTM","FTA","REB","AST","STL","BLK","TO","PF"]);
+
+      const add = (teamLabel, r) => {
+        for (const p of r) {
+          rows.push([
+            teamLabel,
+            p.name,
+            points(p),
+            p.FGM, p.FGA,
+            p._3PM, p._3PA,
+            p.FTM, p.FTA,
+            p.REB, p.AST, p.STL, p.BLK, p.TO, p.PF
+          ]);
+        }
+      };
+      add(state.teamAName, state.rosterA);
+      add(state.teamBName, state.rosterB);
+
+      rows.push([]);
+      rows.push(["Notes"]);
+      rows.push([state.notes ?? ""]);
+
+      const csv = rows.map(r => r.map(cell => `"${String(cell ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `IM_Basketball_${state.gameId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    }
+
+    function refreshPlayerDropdown() {
+      const team = teamSelect.value;
+      const r = roster(team);
+
+      playerSelect.innerHTML = r.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+      // If none, keep empty
+    }
+
+    function syncUI(full=true) {
+      gameIdLabel.textContent = state.gameId;
+      periodLabel.textContent = state.period;
+
+      if (full) {
+        teamAName.value = state.teamAName;
+        teamBName.value = state.teamBName;
+        scoreA.value = state.scoreA;
+        scoreB.value = state.scoreB;
+        notes.value = state.notes ?? "";
+      }
+
+      refreshPlayerDropdown();
+      renderTable();
+      renderKPIs();
+    }
+
+    // Initial
+    syncUI(true);
+    save();
+  </script>
+</body>
+</html>
