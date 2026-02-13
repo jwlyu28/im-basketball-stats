@@ -105,7 +105,14 @@
         <div class="split">
           <div>
             <label>Court (1–6)</label>
-            <select id="courtSelect"></select>
+            <select id="courtSelect">
+              <option value="1">Court 1</option>
+              <option value="2">Court 2</option>
+              <option value="3">Court 3</option>
+              <option value="4">Court 4</option>
+              <option value="5">Court 5</option>
+              <option value="6">Court 6</option>
+</select>
           </div>
           <div>
             <label>Start quarter</label>
@@ -128,7 +135,6 @@
           </div>
         </div>
         <div class="row" style="margin-top:10px;justify-content:space-between">
-          <div class="tiny">Timeouts start at 3. At halftime, remaining is capped to 2.</div>
           <button class="primary" id="createGameBtn">Create game</button>
         </div>
       </div>
@@ -467,15 +473,6 @@
   }
 
   // ---- Lobby
-  function initCourtSelect(){
-    courtSelect.innerHTML = "";
-    for (let i=1;i<=6;i++){
-      const opt = document.createElement("option");
-      opt.value = String(i);
-      opt.textContent = "Court " + i;
-      courtSelect.appendChild(opt);
-    }
-  }
 
   async function createGame(){
     const court = clamp0(courtSelect.value);
@@ -599,7 +596,7 @@
     viewLobby.style.display = "block";
     navLobbyBtn.style.display = "none";
     el("hdrTitle").textContent = "IM Supervisor Console";
-    el("hdrSub").textContent = "Live lobby • 6 courts • iPad-ready";
+    el("hdrSub").textContent = "";
   }
 
   async function openGame(id){
@@ -1019,9 +1016,7 @@
       showLobby();
     }
   }
-
-  // ---- Init
-  initCourtSelect();
+  
   // Live lobby subscription stays on; game view subscriptions replace it.
   const unsubLobby = subscribeLobby();
 
