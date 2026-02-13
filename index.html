@@ -474,19 +474,32 @@
 
   // ---- Lobby
 
-  async function createGame(){
+async function createGame(){
+  try {
+    createGameBtn.disabled = true;
+    createGameBtn.textContent = "Creating...";
+
     const court = clamp0(courtSelect.value);
     const q = clamp0(startQuarter.value);
     const teamA = newTeamA.value.trim();
     const teamB = newTeamB.value.trim();
 
-    // Create doc with auto ID
+    if (!court || court < 1 || court > 6) throw new Error("Pick a court (1–6).");
+    if (!q || q < 1 || q > 4) throw new Error("Pick a quarter (1–4).");
+
     const ref = await addDoc(collection(db, "games"), newGameDoc({court, q, teamA, teamB}));
     await addEvent(ref.id, "GAME_CREATE", { label: `Game created on Court ${court} (Q${q})` });
 
-    // Go to game
     location.hash = "#game=" + ref.id;
+  } catch (err) {
+    console.error(err);
+    alert("Create game failed:\n" + (err?.message || String(err)));
+    connLabel.textContent = "ERROR";
+  } finally {
+    createGameBtn.disabled = false;
+    createGameBtn.textContent = "Create game";
   }
+}
 
   function renderCourts(games){
     // map by court
