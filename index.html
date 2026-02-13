@@ -3,380 +3,412 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>IM Basketball Supervisor Console</title>
+  <title>IM Supervisor Console (Live)</title>
   <style>
     :root{
       --bg:#0b0f17; --card:#121a27; --muted:#8aa0b8; --text:#e9f0f7;
-      --line:#243246; --accent:#4da3ff; --good:#37d67a; --bad:#ff5c5c;
-      --warn:#ffd166;
+      --line:#243246; --accent:#4da3ff; --good:#37d67a; --bad:#ff5c5c; --warn:#ffd166;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
     header{
-      padding:14px 16px;border-bottom:1px solid var(--line);
-      display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap
+      position:sticky;top:0;z-index:10;
+      padding:12px 14px;border-bottom:1px solid var(--line);
+      background:rgba(11,15,23,.92);backdrop-filter: blur(8px);
+      display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap
     }
-    header h1{margin:0;font-size:16px;letter-spacing:.3px}
+    header h1{margin:0;font-size:15px;letter-spacing:.2px}
     header .sub{color:var(--muted);font-size:12px}
-    main{padding:14px;max-width:1200px;margin:0 auto;display:grid;gap:12px}
-    .grid{display:grid;gap:12px;grid-template-columns: 420px 1fr}
-    @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+    main{padding:14px;max-width:1250px;margin:0 auto;display:grid;gap:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .split{display:grid;gap:10px;grid-template-columns:1fr 1fr}
-    @media (max-width: 560px){ .split{grid-template-columns:1fr} }
+    .split{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
     label{font-size:12px;color:var(--muted)}
     input, select, textarea, button{
       background:#0e1522;border:1px solid var(--line);color:var(--text);
       padding:10px 10px;border-radius:12px;font-size:14px
     }
+    textarea{width:100%;min-height:92px;resize:vertical}
     input, select{width:100%}
-    textarea{width:100%;min-height:96px;resize:vertical}
     button{cursor:pointer;user-select:none}
-    button.primary{border-color:transparent;background:var(--accent);color:#06101c;font-weight:800}
+    button.primary{border-color:transparent;background:var(--accent);color:#06101c;font-weight:900}
     button.good{border-color:transparent;background:var(--good);color:#06101c;font-weight:900}
     button.bad{border-color:transparent;background:var(--bad);color:#2b0505;font-weight:900}
     button.warn{border-color:transparent;background:var(--warn);color:#2b2205;font-weight:900}
     button.ghost{background:transparent}
-    .tiny{font-size:12px;color:var(--muted)}
     .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);padding:8px 10px;border-radius:999px}
+    .tiny{font-size:12px;color:var(--muted)}
     .dangerLine{border-top:1px dashed var(--line);margin:10px 0}
-    .bigNum{font-size:48px;font-weight:900;letter-spacing:1px;line-height:1}
+    .gridCourts{display:grid;gap:12px;grid-template-columns:repeat(3, minmax(0, 1fr))}
+    @media (max-width: 980px){ .gridCourts{grid-template-columns:repeat(2, minmax(0, 1fr))} }
+    @media (max-width: 560px){ .gridCourts{grid-template-columns:1fr} }
+
+    .courtCard{padding:12px;border-radius:16px;border:1px solid var(--line);background:#0e1522}
+    .courtTop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .courtNum{font-weight:900}
+    .statusLive{color:#bff2d2}
+    .statusIdle{color:var(--muted)}
+    .bigNum{font-size:44px;font-weight:1000;letter-spacing:1px;line-height:1}
     .bigLabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
-    .teamHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .teamName{font-size:16px;font-weight:800}
-    .btnGrid{display:grid;gap:10px;grid-template-columns:repeat(3, minmax(0,1fr))}
+    .teamName{font-size:16px;font-weight:900}
+    .teamPanel{border:1px solid var(--line);border-radius:16px;padding:12px;background:#0e1522}
+    .btnGrid3{display:grid;gap:10px;grid-template-columns:repeat(3, minmax(0,1fr))}
     .btnGrid2{display:grid;gap:10px;grid-template-columns:repeat(2, minmax(0,1fr))}
     .btnGrid4{display:grid;gap:10px;grid-template-columns:repeat(4, minmax(0,1fr))}
-    @media (max-width: 560px){
-      .btnGrid4{grid-template-columns:repeat(2, minmax(0,1fr))}
-    }
-    .mini{padding:8px 10px;font-size:13px;border-radius:10px}
+    @media (max-width: 560px){ .btnGrid4{grid-template-columns:repeat(2, minmax(0,1fr))} }
+
     .log{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:12px}
-    .logItem{
-      display:flex;justify-content:space-between;gap:10px;
-      padding:10px;border-bottom:1px solid var(--line)
-    }
+    .logItem{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--line)}
     .logItem:last-child{border-bottom:none}
-    .logLeft{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .tag{font-size:12px;border:1px solid var(--line);padding:4px 8px;border-radius:999px;color:var(--muted)}
     .tag.good{background:rgba(55,214,122,.14);border-color:rgba(55,214,122,.35);color:#bff2d2}
-    .tag.bad{background:rgba(255,92,92,.12);border-color:rgba(255,92,92,.35);color:#ffd0d0}
     .tag.warn{background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.35);color:#ffefc4}
+    .tag.bad{background:rgba(255,92,92,.12);border-color:rgba(255,92,92,.35);color:#ffd0d0}
+
     table{width:100%;border-collapse:collapse}
     th, td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:13px}
-    th{color:var(--muted);font-weight:700}
+    th{color:var(--muted);font-weight:800}
     td:last-child, th:last-child{text-align:right}
-    .stickyActions{
-      position:sticky;bottom:0;background:linear-gradient(to top, rgba(18,26,39,1), rgba(18,26,39,.85));
-      padding-top:10px;margin-top:10px
-    }
   </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>IM Basketball Supervisor Console</h1>
-    <div class="sub">Score • Team fouls • Player fouls • Timeouts • Notes • Undo</div>
+    <h1 id="hdrTitle">IM Supervisor Console</h1>
+    <div class="sub" id="hdrSub">Live lobby • 6 courts • iPad-ready</div>
   </div>
   <div class="row">
-    <div class="pill"><span>Game</span> <b id="gameIdLabel"></b></div>
-    <div class="pill"><span>Period</span> <b id="periodLabel">1</b></div>
-    <button class="ghost" id="newGameBtn">New game</button>
-    <button class="primary" id="exportBtn">Export CSV</button>
+    <div class="pill"><span>Connection</span> <b id="connLabel">…</b></div>
+    <button class="ghost" id="navLobbyBtn" style="display:none">← Lobby</button>
   </div>
 </header>
 
 <main>
-  <div class="grid">
-
-    <!-- LEFT: "Console" -->
-    <section class="card">
-      <div class="split">
-        <div>
-          <label>Team A name</label>
-          <input id="teamAName" placeholder="Team A" />
-        </div>
-        <div>
-          <label>Team B name</label>
-          <input id="teamBName" placeholder="Team B" />
-        </div>
-      </div>
-
-      <div class="dangerLine"></div>
-
-      <div class="split">
-        <!-- TEAM A PANEL -->
-        <div class="card" style="padding:12px">
-          <div class="teamHeader">
-            <div>
-              <div class="teamName" id="teamALabel">Team A</div>
-              <div class="bigLabel">Score</div>
-            </div>
-            <div class="bigNum" id="scoreALabel">0</div>
-          </div>
-
-          <div class="btnGrid" style="margin-top:10px">
-            <button class="good" data-act="A_SCORE_1">+1</button>
-            <button class="good" data-act="A_SCORE_2">+2</button>
-            <button class="good" data-act="A_SCORE_3">+3</button>
-            <button class="bad"  data-act="A_SCORE_-1">-1</button>
-            <button class="ghost" data-act="A_SCORE_RESET">Reset</button>
-            <button class="warn" data-act="A_SCORE_SET">Set…</button>
-          </div>
-
-          <div class="dangerLine"></div>
-
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div class="bigLabel">Team fouls</div>
-              <div class="bigNum" style="font-size:34px" id="teamFoulsALabel">0</div>
-            </div>
-            <div class="btnGrid2" style="min-width:190px">
-              <button class="warn" data-act="A_TEAMFOUL_+1">+1</button>
-              <button class="bad"  data-act="A_TEAMFOUL_-1">-1</button>
-            </div>
-          </div>
-
-          <div class="dangerLine"></div>
-
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div class="bigLabel">Timeouts</div>
-              <div class="bigNum" style="font-size:34px" id="timeoutsALabel">0</div>
-            </div>
-            <div class="btnGrid2" style="min-width:190px">
-              <button data-act="A_TO_+1">+1</button>
-              <button class="bad" data-act="A_TO_-1">-1</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- TEAM B PANEL -->
-        <div class="card" style="padding:12px">
-          <div class="teamHeader">
-            <div>
-              <div class="teamName" id="teamBLabel">Team B</div>
-              <div class="bigLabel">Score</div>
-            </div>
-            <div class="bigNum" id="scoreBLabel">0</div>
-          </div>
-
-          <div class="btnGrid" style="margin-top:10px">
-            <button class="good" data-act="B_SCORE_1">+1</button>
-            <button class="good" data-act="B_SCORE_2">+2</button>
-            <button class="good" data-act="B_SCORE_3">+3</button>
-            <button class="bad"  data-act="B_SCORE_-1">-1</button>
-            <button class="ghost" data-act="B_SCORE_RESET">Reset</button>
-            <button class="warn" data-act="B_SCORE_SET">Set…</button>
-          </div>
-
-          <div class="dangerLine"></div>
-
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div class="bigLabel">Team fouls</div>
-              <div class="bigNum" style="font-size:34px" id="teamFoulsBLabel">0</div>
-            </div>
-            <div class="btnGrid2" style="min-width:190px">
-              <button class="warn" data-act="B_TEAMFOUL_+1">+1</button>
-              <button class="bad"  data-act="B_TEAMFOUL_-1">-1</button>
-            </div>
-          </div>
-
-          <div class="dangerLine"></div>
-
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div class="bigLabel">Timeouts</div>
-              <div class="bigNum" style="font-size:34px" id="timeoutsBLabel">0</div>
-            </div>
-            <div class="btnGrid2" style="min-width:190px">
-              <button data-act="B_TO_+1">+1</button>
-              <button class="bad" data-act="B_TO_-1">-1</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="dangerLine"></div>
-
-      <div class="row" style="justify-content:space-between">
-        <div class="row">
-          <button class="ghost" id="periodDown">- Period</button>
-          <button class="ghost" id="periodUp">+ Period</button>
-          <button class="ghost" id="resetTeamFoulsBtn">Reset team fouls</button>
-        </div>
-        <div class="row">
-          <button class="bad" id="undoBtn">Undo last</button>
-        </div>
-      </div>
-
-      <div class="dangerLine"></div>
-
-      <!-- PLAYER FOULS -->
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div style="font-weight:900">Player fouls (required)</div>
-          <div class="tiny">Fast entry: select team → pick player → tap “+ PF”.</div>
-        </div>
-        <div class="row">
-          <label class="tiny" style="margin-right:6px">Optional points</label>
-          <input id="pointsToggle" type="checkbox" style="width:auto;transform:scale(1.15)" />
-        </div>
-      </div>
-
-      <div class="split" style="margin-top:10px">
-        <div>
-          <label>Team</label>
-          <select id="teamSelect">
-            <option value="A">Team A</option>
-            <option value="B">Team B</option>
-          </select>
-        </div>
-        <div>
-          <label>Player</label>
-          <select id="playerSelect"></select>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <input id="playerNameInput" placeholder="Add player (e.g., #12 Jay / Jay #12)" />
-        <button class="primary" id="addPlayerBtn">Add</button>
-      </div>
-
-      <div class="btnGrid4" style="margin-top:10px">
-        <button class="warn" data-act="PLAYER_PF_+1">+ PF</button>
-        <button class="bad"  data-act="PLAYER_PF_-1">- PF</button>
-        <button class="ghost" id="clearRosterTeamBtn">Clear team roster</button>
-        <button class="ghost" id="quickTechNoteBtn">Tech note</button>
-      </div>
-
-      <div id="pointsPanel" style="display:none;margin-top:10px">
-        <div class="tiny">Optional: record individual points (keeps it lightweight).</div>
-        <div class="btnGrid" style="margin-top:10px">
-          <button class="good" data-act="PLAYER_PTS_+1">+1</button>
-          <button class="good" data-act="PLAYER_PTS_+2">+2</button>
-          <button class="good" data-act="PLAYER_PTS_+3">+3</button>
-          <button class="bad"  data-act="PLAYER_PTS_-1">-1</button>
-          <button class="bad"  data-act="PLAYER_PTS_-2">-2</button>
-          <button class="bad"  data-act="PLAYER_PTS_-3">-3</button>
-        </div>
-      </div>
-
-      <div class="dangerLine"></div>
-
+  <!-- LOBBY -->
+  <section id="viewLobby" class="card">
+    <div class="row" style="justify-content:space-between">
       <div>
-        <label>Supervisor notes (ref feedback, incidents, scoreboard issues)</label>
-        <textarea id="notes" placeholder="Examples:
-- White #23 warned for language
-- Ref missed goaltend at 6:12 (Period 2)
-- Scoreboard console lagging; manual track used"></textarea>
+        <div style="font-weight:900">Games Lobby</div>
+        <div class="tiny">Create a game on a court, or tap an ongoing game to open its console.</div>
       </div>
+      <div class="row">
+        <button class="ghost" id="refreshBtn">Refresh</button>
+      </div>
+    </div>
 
-    </section>
+    <div class="dangerLine"></div>
 
-    <!-- RIGHT: Summary + Log + Player Foul Table -->
-    <section class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="row">
-          <div class="pill"><span id="sumAName">Team A</span> <b id="sumAScore">0</b></div>
-          <div class="pill"><span id="sumBName">Team B</span> <b id="sumBScore">0</b></div>
-          <div class="pill"><span>Team fouls</span> <b id="sumTF">0 - 0</b></div>
-          <div class="pill"><span>Timeouts</span> <b id="sumTO">0 - 0</b></div>
+    <div class="split">
+      <div class="card">
+        <div style="font-weight:900;margin-bottom:8px">Create / Start Game</div>
+        <div class="split">
+          <div>
+            <label>Court (1–6)</label>
+            <select id="courtSelect"></select>
+          </div>
+          <div>
+            <label>Start quarter</label>
+            <select id="startQuarter">
+              <option value="1">Q1</option>
+              <option value="2">Q2</option>
+              <option value="3">Q3</option>
+              <option value="4">Q4</option>
+            </select>
+          </div>
         </div>
-        <div class="row">
-          <button class="ghost" id="resetAllBtn">Reset all counters</button>
+        <div class="split" style="margin-top:10px">
+          <div>
+            <label>Team A</label>
+            <input id="newTeamA" placeholder="Team A name"/>
+          </div>
+          <div>
+            <label>Team B</label>
+            <input id="newTeamB" placeholder="Team B name"/>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;justify-content:space-between">
+          <div class="tiny">Timeouts start at 3. At halftime, remaining is capped to 2.</div>
+          <button class="primary" id="createGameBtn">Create game</button>
         </div>
       </div>
 
-      <div class="dangerLine"></div>
+      <div class="card">
+        <div style="font-weight:900;margin-bottom:8px">Ongoing Games</div>
+        <div id="ongoingList" class="tiny">Loading…</div>
+      </div>
+    </div>
 
-      <div style="font-weight:900;margin-bottom:8px">Event log</div>
-      <div class="log" id="log"></div>
+    <div class="dangerLine"></div>
 
-      <div class="dangerLine"></div>
+    <div class="gridCourts" id="courtsGrid"></div>
+  </section>
 
-      <div style="font-weight:900;margin-bottom:8px">Player foul list</div>
-      <div style="overflow:auto;border:1px solid var(--line);border-radius:12px">
-        <table id="pfTable"></table>
+  <!-- GAME -->
+  <section id="viewGame" class="card" style="display:none">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <div class="pill"><span>Court</span> <b id="gameCourt">-</b></div>
+        <div class="pill"><span>Game</span> <b id="gameId">-</b></div>
+        <div class="pill"><span>Quarter</span> <b id="gameQuarter">Q1</b></div>
+      </div>
+      <div class="row">
+        <button class="ghost" id="endGameBtn">End game</button>
+        <button class="bad" id="undoBtn">Undo</button>
+      </div>
+    </div>
+
+    <div class="dangerLine"></div>
+
+    <div class="split">
+      <!-- LEFT: Controls -->
+      <div class="card">
+        <div class="split">
+          <div>
+            <label>Team A</label>
+            <input id="teamAName" />
+          </div>
+          <div>
+            <label>Team B</label>
+            <input id="teamBName" />
+          </div>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <div class="split">
+          <!-- Team A panel -->
+          <div class="teamPanel">
+            <div class="row" style="justify-content:space-between;align-items:flex-end">
+              <div>
+                <div class="teamName" id="teamALabel">Team A</div>
+                <div class="bigLabel">Score</div>
+              </div>
+              <div class="bigNum" id="scoreA">0</div>
+            </div>
+            <div class="btnGrid3" style="margin-top:10px">
+              <button class="good" data-act="A_S+1">+1</button>
+              <button class="good" data-act="A_S+2">+2</button>
+              <button class="good" data-act="A_S+3">+3</button>
+              <button class="bad"  data-act="A_S-1">-1</button>
+              <button class="warn" data-act="A_SSET">Set…</button>
+              <button class="ghost" data-act="A_S0">Reset</button>
+            </div>
+
+            <div class="dangerLine"></div>
+
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="bigLabel">Team fouls (this quarter)</div>
+                <div class="bigNum" style="font-size:34px" id="tfA">0</div>
+              </div>
+              <div class="btnGrid2" style="min-width:180px">
+                <button class="warn" data-act="A_TF+1">+1</button>
+                <button class="bad"  data-act="A_TF-1">-1</button>
+              </div>
+            </div>
+
+            <div class="dangerLine"></div>
+
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="bigLabel">Timeouts remaining</div>
+                <div class="bigNum" style="font-size:34px" id="toA">3</div>
+              </div>
+              <div class="btnGrid2" style="min-width:180px">
+                <button data-act="A_TO-1" class="warn">Use</button>
+                <button data-act="A_TO+1" class="ghost">+1</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team B panel -->
+          <div class="teamPanel">
+            <div class="row" style="justify-content:space-between;align-items:flex-end">
+              <div>
+                <div class="teamName" id="teamBLabel">Team B</div>
+                <div class="bigLabel">Score</div>
+              </div>
+              <div class="bigNum" id="scoreB">0</div>
+            </div>
+            <div class="btnGrid3" style="margin-top:10px">
+              <button class="good" data-act="B_S+1">+1</button>
+              <button class="good" data-act="B_S+2">+2</button>
+              <button class="good" data-act="B_S+3">+3</button>
+              <button class="bad"  data-act="B_S-1">-1</button>
+              <button class="warn" data-act="B_SSET">Set…</button>
+              <button class="ghost" data-act="B_S0">Reset</button>
+            </div>
+
+            <div class="dangerLine"></div>
+
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="bigLabel">Team fouls (this quarter)</div>
+                <div class="bigNum" style="font-size:34px" id="tfB">0</div>
+              </div>
+              <div class="btnGrid2" style="min-width:180px">
+                <button class="warn" data-act="B_TF+1">+1</button>
+                <button class="bad"  data-act="B_TF-1">-1</button>
+              </div>
+            </div>
+
+            <div class="dangerLine"></div>
+
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="bigLabel">Timeouts remaining</div>
+                <div class="bigNum" style="font-size:34px" id="toB">3</div>
+              </div>
+              <div class="btnGrid2" style="min-width:180px">
+                <button data-act="B_TO-1" class="warn">Use</button>
+                <button data-act="B_TO+1" class="ghost">+1</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <button class="ghost" id="qDownBtn">← Quarter</button>
+            <button class="ghost" id="qUpBtn">Quarter →</button>
+            <span class="tiny">Team fouls auto-reset on quarter change.</span>
+          </div>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <div style="font-weight:900">Personal fouls (required)</div>
+        <div class="tiny">Pick team → player → tap +PF. Add roster if needed.</div>
+
+        <div class="split" style="margin-top:10px">
+          <div>
+            <label>Team</label>
+            <select id="pfTeam">
+              <option value="A">Team A</option>
+              <option value="B">Team B</option>
+            </select>
+          </div>
+          <div>
+            <label>Player</label>
+            <select id="pfPlayer"></select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <input id="addPlayerInput" placeholder="Add player (e.g., #12 Jay)"/>
+          <button class="primary" id="addPlayerBtn">Add</button>
+        </div>
+
+        <div class="btnGrid4" style="margin-top:10px">
+          <button class="warn" id="pfPlusBtn">+ PF</button>
+          <button class="bad" id="pfMinusBtn">- PF</button>
+          <button class="ghost" id="clearRosterBtn">Clear roster (team)</button>
+          <button class="ghost" id="quickNoteBtn">Quick note</button>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <label>Supervisor notes (ref feedback / incidents)</label>
+        <textarea id="notes"></textarea>
       </div>
 
-      <div class="stickyActions row" style="justify-content:space-between">
-        <div class="tiny">Auto-saves on every tap.</div>
-        <div class="row">
-          <button class="ghost" id="copySummaryBtn">Copy game summary</button>
+      <!-- RIGHT: log + foul table -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <div class="pill"><span id="sumAName">Team A</span> <b id="sumAScore">0</b></div>
+            <div class="pill"><span id="sumBName">Team B</span> <b id="sumBScore">0</b></div>
+            <div class="pill"><span>TF</span> <b id="sumTF">0-0</b></div>
+            <div class="pill"><span>TO</span> <b id="sumTO">3-3</b></div>
+          </div>
+        </div>
+
+        <div class="dangerLine"></div>
+
+        <div style="font-weight:900;margin-bottom:8px">Event log</div>
+        <div class="log" id="eventLog"></div>
+
+        <div class="dangerLine"></div>
+
+        <div style="font-weight:900;margin-bottom:8px">Player fouls</div>
+        <div style="overflow:auto;border:1px solid var(--line);border-radius:12px">
+          <table id="pfTable"></table>
         </div>
       </div>
-    </section>
-
-  </div>
+    </div>
+  </section>
 </main>
 
-<script>
-  // ---------- Storage ----------
-  const LS_KEY = "im_bball_supervisor_console_v2";
-  const uid = () => Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+<script type="module">
+  // Firebase v9+ (CDN)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDoc, deleteDoc,
+    onSnapshot, query, where, orderBy, serverTimestamp, runTransaction, limit
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  const blankPlayer = (name) => ({
-    id: uid(),
-    name: name.trim(),
-    PF: 0,
-    PTS: 0
-  });
+  // 1) PASTE YOUR firebaseConfig here
+  const firebaseConfig = PASTE_YOUR_FIREBASE_CONFIG_HERE;
 
-  const blankGame = () => ({
-    gameId: uid().slice(0,8).toUpperCase(),
-    createdAt: new Date().toISOString(),
-    teamAName: "Team A",
-    teamBName: "Team B",
-    scoreA: 0,
-    scoreB: 0,
-    teamFoulsA: 0,
-    teamFoulsB: 0,
-    timeoutsA: 0,
-    timeoutsB: 0,
-    period: 1,
-    notes: "",
-    pointsEnabled: false,
-    rosterA: [],
-    rosterB: [],
-    events: [] // newest at end: {ts, period, type, team, playerId, delta, label}
-  });
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  let state = load() ?? blankGame();
-
-  function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-  function load() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch { return null; } }
-
-  // ---------- DOM ----------
+  // ---- DOM helpers
   const el = (id) => document.getElementById(id);
+  const connLabel = el("connLabel");
 
-  const gameIdLabel = el("gameIdLabel");
-  const periodLabel = el("periodLabel");
+  // Views
+  const viewLobby = el("viewLobby");
+  const viewGame = el("viewGame");
+  const navLobbyBtn = el("navLobbyBtn");
 
+  // Lobby inputs
+  const courtSelect = el("courtSelect");
+  const startQuarter = el("startQuarter");
+  const newTeamA = el("newTeamA");
+  const newTeamB = el("newTeamB");
+  const createGameBtn = el("createGameBtn");
+  const courtsGrid = el("courtsGrid");
+  const ongoingList = el("ongoingList");
+
+  // Game bindings
+  const gameCourt = el("gameCourt");
+  const gameId = el("gameId");
+  const gameQuarter = el("gameQuarter");
   const teamAName = el("teamAName");
   const teamBName = el("teamBName");
 
   const teamALabel = el("teamALabel");
   const teamBLabel = el("teamBLabel");
 
-  const scoreALabel = el("scoreALabel");
-  const scoreBLabel = el("scoreBLabel");
+  const scoreA = el("scoreA");
+  const scoreB = el("scoreB");
+  const tfA = el("tfA");
+  const tfB = el("tfB");
+  const toA = el("toA");
+  const toB = el("toB");
 
-  const teamFoulsALabel = el("teamFoulsALabel");
-  const teamFoulsBLabel = el("teamFoulsBLabel");
+  const qUpBtn = el("qUpBtn");
+  const qDownBtn = el("qDownBtn");
+  const endGameBtn = el("endGameBtn");
+  const undoBtn = el("undoBtn");
 
-  const timeoutsALabel = el("timeoutsALabel");
-  const timeoutsBLabel = el("timeoutsBLabel");
-
-  const teamSelect = el("teamSelect");
-  const playerSelect = el("playerSelect");
-  const playerNameInput = el("playerNameInput");
+  const pfTeam = el("pfTeam");
+  const pfPlayer = el("pfPlayer");
+  const addPlayerInput = el("addPlayerInput");
+  const addPlayerBtn = el("addPlayerBtn");
+  const pfPlusBtn = el("pfPlusBtn");
+  const pfMinusBtn = el("pfMinusBtn");
+  const clearRosterBtn = el("clearRosterBtn");
 
   const notes = el("notes");
-  const pointsToggle = el("pointsToggle");
-  const pointsPanel = el("pointsPanel");
+  const quickNoteBtn = el("quickNoteBtn");
+
+  const eventLog = el("eventLog");
+  const pfTable = el("pfTable");
 
   const sumAName = el("sumAName");
   const sumBName = el("sumBName");
@@ -385,445 +417,619 @@
   const sumTF = el("sumTF");
   const sumTO = el("sumTO");
 
-  const log = el("log");
-  const pfTable = el("pfTable");
+  // ---- State
+  let currentGameId = null;
+  let unsubGame = null;
+  let unsubEvents = null;
+  let unsubPlayersA = null;
+  let unsubPlayersB = null;
 
-  // ---------- Helpers ----------
-  function roster(team){ return team === "A" ? state.rosterA : state.rosterB; }
-  function clamp0(n){ n = Number(n); return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0; }
-  function escapeHtml(s){
-    return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
-  }
-  function nowISO(){ return new Date().toISOString(); }
-  function teamName(team){ return team === "A" ? state.teamAName : state.teamBName; }
+  // ---- Utils
+  const clamp0 = (n) => {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 0;
+    return Math.max(0, Math.trunc(x));
+  };
+  const escapeHtml = (s) => String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
 
-  function pushEvent(evt){
-    state.events.push(evt);
-    // keep it from getting huge
-    if (state.events.length > 400) state.events.shift();
-  }
+  const gameRef = (id) => doc(db, "games", id);
+  const eventsCol = (id) => collection(db, "games", id, "events");
+  const playersCol = (id, team) => collection(db, "games", id, "players_" + team); // players_A / players_B
 
-  function getSelectedPlayer(){
-    const team = teamSelect.value;
-    const pid = playerSelect.value;
-    const p = roster(team).find(x => x.id === pid);
-    return { team, player: p };
-  }
-
-  // ---------- Core actions ----------
-  function applyDelta(path, delta, meta){
-    // path is like "scoreA" or "teamFoulsB"
-    state[path] = clamp0(state[path] + delta);
-    pushEvent({
-      ts: nowISO(),
-      period: state.period,
-      type: meta.type,
-      team: meta.team ?? null,
-      playerId: meta.playerId ?? null,
-      delta,
-      label: meta.label
-    });
-    save();
-    renderAll();
-  }
-
-  function setValue(path, newValue, meta){
-    const prev = state[path];
-    state[path] = clamp0(newValue);
-    const delta = state[path] - prev;
-    pushEvent({
-      ts: nowISO(),
-      period: state.period,
-      type: meta.type,
-      team: meta.team ?? null,
-      playerId: meta.playerId ?? null,
-      delta,
-      label: meta.label + ` (set)`
-    });
-    save();
-    renderAll();
-  }
-
-  function undoLast(){
-    const last = state.events.pop();
-    if (!last) return;
-
-    // Reverse based on type/label. We store deltas so undo is easy for counters.
-    // For "set" we only stored delta; reversing delta is correct.
-    if (last.label.includes("Score A")) state.scoreA = clamp0(state.scoreA - last.delta);
-    else if (last.label.includes("Score B")) state.scoreB = clamp0(state.scoreB - last.delta);
-    else if (last.label.includes("Team Fouls A")) state.teamFoulsA = clamp0(state.teamFoulsA - last.delta);
-    else if (last.label.includes("Team Fouls B")) state.teamFoulsB = clamp0(state.teamFoulsB - last.delta);
-    else if (last.label.includes("Timeouts A")) state.timeoutsA = clamp0(state.timeoutsA - last.delta);
-    else if (last.label.includes("Timeouts B")) state.timeoutsB = clamp0(state.timeoutsB - last.delta);
-    else if (last.type === "PLAYER_PF" || last.type === "PLAYER_PTS"){
-      const r = roster(last.team);
-      const p = r.find(x => x.id === last.playerId);
-      if (p){
-        if (last.type === "PLAYER_PF") p.PF = clamp0(p.PF - last.delta);
-        if (last.type === "PLAYER_PTS") p.PTS = clamp0(p.PTS - last.delta);
-      }
-    } else if (last.type === "NOTE"){
-      // we can’t perfectly undo free-text edits; leave it
-    }
-
-    save();
-    renderAll();
-  }
-
-  function resetTeamFouls(){
-    setValue("teamFoulsA", 0, {type:"TEAMFOUL_RESET", label:"Team Fouls A"});
-    setValue("teamFoulsB", 0, {type:"TEAMFOUL_RESET", label:"Team Fouls B"});
-  }
-
-  function resetAllCounters(){
-    if (!confirm("Reset score, team fouls, timeouts, and player fouls/points?")) return;
-    setValue("scoreA", 0, {type:"RESET", label:"Score A"});
-    setValue("scoreB", 0, {type:"RESET", label:"Score B"});
-    setValue("teamFoulsA", 0, {type:"RESET", label:"Team Fouls A"});
-    setValue("teamFoulsB", 0, {type:"RESET", label:"Team Fouls B"});
-    setValue("timeoutsA", 0, {type:"RESET", label:"Timeouts A"});
-    setValue("timeoutsB", 0, {type:"RESET", label:"Timeouts B"});
-    // player stats
-    for (const p of state.rosterA){ p.PF = 0; p.PTS = 0; }
-    for (const p of state.rosterB){ p.PF = 0; p.PTS = 0; }
-    pushEvent({ts: nowISO(), period: state.period, type:"RESET", team:null, playerId:null, delta:0, label:"Players reset"});
-    save();
-    renderAll();
-  }
-
-  // ---------- Roster ----------
-  function refreshPlayerDropdown(){
-    const team = teamSelect.value;
-    const r = roster(team);
-    playerSelect.innerHTML = r.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (PF ${p.PF}${state.pointsEnabled ? `, PTS ${p.PTS}` : ""})</option>`).join("");
-  }
-
-  function addPlayer(){
-    const name = playerNameInput.value.trim();
-    if (!name) return;
-    const team = teamSelect.value;
-    roster(team).push(blankPlayer(name));
-    playerNameInput.value = "";
-    pushEvent({ts: nowISO(), period: state.period, type:"ROSTER", team, playerId:null, delta:0, label:`Add player ${name} (${teamName(team)})`});
-    save();
-    renderAll();
-  }
-
-  function clearRosterTeam(){
-    const team = teamSelect.value;
-    const tName = teamName(team);
-    if (!confirm(`Clear roster for ${tName}? (keeps team counters)`)) return;
-    if (team === "A") state.rosterA = [];
-    else state.rosterB = [];
-    pushEvent({ts: nowISO(), period: state.period, type:"ROSTER", team, playerId:null, delta:0, label:`Clear roster (${tName})`});
-    save();
-    renderAll();
-  }
-
-  // ---------- Export / Copy summary ----------
-  function exportCSV(){
-    const rows = [];
-    rows.push(["GameId", state.gameId]);
-    rows.push(["CreatedAt", state.createdAt]);
-    rows.push(["Period", state.period]);
-    rows.push(["TeamA", state.teamAName, "Score", state.scoreA, "TeamFouls", state.teamFoulsA, "Timeouts", state.timeoutsA]);
-    rows.push(["TeamB", state.teamBName, "Score", state.scoreB, "TeamFouls", state.teamFoulsB, "Timeouts", state.timeoutsB]);
-    rows.push([]);
-    rows.push(["Team","Player","PF","PTS"]);
-    const add = (teamLabel, r) => {
-      for (const p of r) rows.push([teamLabel, p.name, p.PF, state.pointsEnabled ? p.PTS : ""]);
+  // ---- Firestore doc shapes
+  function newGameDoc({court, q, teamA, teamB}){
+    return {
+      status: "live",
+      court,
+      quarter: q,
+      teamAName: teamA || "Team A",
+      teamBName: teamB || "Team B",
+      scoreA: 0,
+      scoreB: 0,
+      teamFoulsA: 0,
+      teamFoulsB: 0,
+      timeoutsA: 3,
+      timeoutsB: 3,
+      notes: "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     };
-    add(state.teamAName, state.rosterA);
-    add(state.teamBName, state.rosterB);
-    rows.push([]);
-    rows.push(["Notes"]);
-    rows.push([state.notes ?? ""]);
-    rows.push([]);
-    rows.push(["EventLog(ts,period,type,label,team,delta)"]);
-    for (const e of state.events){
-      rows.push([e.ts, e.period, e.type, e.label, e.team ?? "", e.delta ?? ""]);
-    }
-
-    const csv = rows.map(r => r.map(cell => `"${String(cell ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `IM_Basketball_${state.gameId}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
 
-  async function copySummary(){
-    const summary =
-`IM Basketball Summary (${state.gameId})
-Period: ${state.period}
+  async function addEvent(gameId, type, payload){
+    // Keep events append-only for shared undo.
+    await addDoc(eventsCol(gameId), {
+      ts: serverTimestamp(),
+      type,
+      ...payload
+    });
+  }
 
-${state.teamAName}: ${state.scoreA}
-Team Fouls: ${state.teamFoulsA}
-Timeouts: ${state.timeoutsA}
-
-${state.teamBName}: ${state.scoreB}
-Team Fouls: ${state.teamFoulsB}
-Timeouts: ${state.timeoutsB}
-
-Notes:
-${state.notes || "(none)"}`;
-    try{
-      await navigator.clipboard.writeText(summary);
-      alert("Summary copied.");
-    } catch {
-      prompt("Copy this:", summary);
+  // ---- Lobby
+  function initCourtSelect(){
+    courtSelect.innerHTML = "";
+    for (let i=1;i<=6;i++){
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = "Court " + i;
+      courtSelect.appendChild(opt);
     }
   }
 
-  // ---------- UI rendering ----------
-  function renderSummary(){
-    teamALabel.textContent = state.teamAName;
-    teamBLabel.textContent = state.teamBName;
+  async function createGame(){
+    const court = clamp0(courtSelect.value);
+    const q = clamp0(startQuarter.value);
+    const teamA = newTeamA.value.trim();
+    const teamB = newTeamB.value.trim();
 
-    scoreALabel.textContent = state.scoreA;
-    scoreBLabel.textContent = state.scoreB;
+    // Create doc with auto ID
+    const ref = await addDoc(collection(db, "games"), newGameDoc({court, q, teamA, teamB}));
+    await addEvent(ref.id, "GAME_CREATE", { label: `Game created on Court ${court} (Q${q})` });
 
-    teamFoulsALabel.textContent = state.teamFoulsA;
-    teamFoulsBLabel.textContent = state.teamFoulsB;
-
-    timeoutsALabel.textContent = state.timeoutsA;
-    timeoutsBLabel.textContent = state.timeoutsB;
-
-    sumAName.textContent = state.teamAName;
-    sumBName.textContent = state.teamBName;
-    sumAScore.textContent = state.scoreA;
-    sumBScore.textContent = state.scoreB;
-    sumTF.textContent = `${state.teamFoulsA} - ${state.teamFoulsB}`;
-    sumTO.textContent = `${state.timeoutsA} - ${state.timeoutsB}`;
-
-    gameIdLabel.textContent = state.gameId;
-    periodLabel.textContent = state.period;
-
-    notes.value = state.notes ?? "";
-
-    pointsToggle.checked = !!state.pointsEnabled;
-    pointsPanel.style.display = state.pointsEnabled ? "block" : "none";
+    // Go to game
+    location.hash = "#game=" + ref.id;
   }
 
-  function renderLog(){
-    const last = state.events.slice(-120).reverse();
-    if (last.length === 0){
-      log.innerHTML = `<div class="logItem"><div class="tiny">No events yet. Start tracking.</div></div>`;
+  function renderCourts(games){
+    // map by court
+    const byCourt = new Map();
+    for (const g of games) byCourt.set(g.court, g);
+
+    const cards = [];
+    for (let c=1;c<=6;c++){
+      const g = byCourt.get(c);
+      if (!g){
+        cards.push(`
+          <div class="courtCard">
+            <div class="courtTop">
+              <div class="courtNum">Court ${c}</div>
+              <div class="statusIdle">Idle</div>
+            </div>
+            <div class="tiny" style="margin-top:8px">No live game.</div>
+            <div class="row" style="margin-top:10px">
+              <button class="primary" data-startcourt="${c}">Start here</button>
+            </div>
+          </div>
+        `);
+      } else {
+        cards.push(`
+          <div class="courtCard">
+            <div class="courtTop">
+              <div class="courtNum">Court ${c}</div>
+              <div class="statusLive">LIVE • Q${g.quarter}</div>
+            </div>
+            <div style="margin-top:10px">
+              <div><b>${escapeHtml(g.teamAName)}</b> ${g.scoreA} • TF ${g.teamFoulsA} • TO ${g.timeoutsA}</div>
+              <div><b>${escapeHtml(g.teamBName)}</b> ${g.scoreB} • TF ${g.teamFoulsB} • TO ${g.timeoutsB}</div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="primary" data-opengame="${g.id}">Open console</button>
+            </div>
+          </div>
+        `);
+      }
+    }
+    courtsGrid.innerHTML = cards.join("");
+
+    courtsGrid.querySelectorAll("[data-startcourt]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        courtSelect.value = btn.dataset.startcourt;
+        newTeamA.focus();
+        window.scrollTo({top:0, behavior:"smooth"});
+      });
+    });
+
+    courtsGrid.querySelectorAll("[data-opengame]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        location.hash = "#game=" + btn.dataset.opengame;
+      });
+    });
+  }
+
+  function renderOngoingList(games){
+    if (!games.length){
+      ongoingList.innerHTML = `<div class="tiny">No live games.</div>`;
       return;
     }
-    log.innerHTML = last.map(e => {
-      const t = e.team ? teamName(e.team) : "";
+    ongoingList.innerHTML = games
+      .slice()
+      .sort((a,b)=> (a.court-b.court))
+      .map(g=> `
+        <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0">
+          <div>
+            <b>Court ${g.court}</b> • Q${g.quarter}<br>
+            <span class="tiny">${escapeHtml(g.teamAName)} ${g.scoreA} vs ${escapeHtml(g.teamBName)} ${g.scoreB}</span>
+          </div>
+          <button class="primary" data-opengame="${g.id}">Open</button>
+        </div>
+      `).join("");
+
+    ongoingList.querySelectorAll("[data-opengame]").forEach(btn=>{
+      btn.addEventListener("click", ()=> location.hash = "#game=" + btn.dataset.opengame);
+    });
+  }
+
+  function subscribeLobby(){
+    const qy = query(collection(db, "games"), where("status","==","live"), orderBy("court","asc"));
+    return onSnapshot(qy, (snap)=>{
+      const games = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCourts(games);
+      renderOngoingList(games);
+      connLabel.textContent = "LIVE";
+    }, (err)=>{
+      console.error(err);
+      connLabel.textContent = "ERROR";
+    });
+  }
+
+  // ---- Game view
+  function teardownGameSubs(){
+    if (unsubGame) unsubGame();
+    if (unsubEvents) unsubEvents();
+    if (unsubPlayersA) unsubPlayersA();
+    if (unsubPlayersB) unsubPlayersB();
+    unsubGame = unsubEvents = unsubPlayersA = unsubPlayersB = null;
+  }
+
+  function showLobby(){
+    teardownGameSubs();
+    currentGameId = null;
+    viewGame.style.display = "none";
+    viewLobby.style.display = "block";
+    navLobbyBtn.style.display = "none";
+    el("hdrTitle").textContent = "IM Supervisor Console";
+    el("hdrSub").textContent = "Live lobby • 6 courts • iPad-ready";
+  }
+
+  async function openGame(id){
+    teardownGameSubs();
+    currentGameId = id;
+    viewLobby.style.display = "none";
+    viewGame.style.display = "block";
+    navLobbyBtn.style.display = "inline-flex";
+    el("hdrTitle").textContent = "Game Console";
+    el("hdrSub").textContent = "Score • Team Fouls • Timeouts • PF • Undo";
+
+    // subscribe game doc
+    unsubGame = onSnapshot(gameRef(id), (snap)=>{
+      if (!snap.exists()){
+        alert("Game not found.");
+        location.hash = "#";
+        return;
+      }
+      const g = snap.data();
+      renderGameDoc(id, g);
+      connLabel.textContent = "LIVE";
+    }, (err)=>{
+      console.error(err);
+      connLabel.textContent = "ERROR";
+    });
+
+    // subscribe events (latest 80)
+    const eq = query(eventsCol(id), orderBy("ts","desc"), limit(80));
+    unsubEvents = onSnapshot(eq, (snap)=>{
+      const ev = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      renderEvents(ev);
+    });
+
+    // subscribe rosters
+    unsubPlayersA = onSnapshot(query(playersCol(id,"A"), orderBy("name","asc")), (snap)=>{
+      const players = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderPlayers("A", players);
+    });
+    unsubPlayersB = onSnapshot(query(playersCol(id,"B"), orderBy("name","asc")), (snap)=>{
+      const players = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderPlayers("B", players);
+    });
+  }
+
+  function renderGameDoc(id, g){
+    gameId.textContent = id.slice(0,8).toUpperCase();
+    gameCourt.textContent = "Court " + g.court;
+    gameQuarter.textContent = "Q" + g.quarter;
+
+    teamAName.value = g.teamAName;
+    teamBName.value = g.teamBName;
+
+    teamALabel.textContent = g.teamAName;
+    teamBLabel.textContent = g.teamBName;
+
+    scoreA.textContent = g.scoreA;
+    scoreB.textContent = g.scoreB;
+    tfA.textContent = g.teamFoulsA;
+    tfB.textContent = g.teamFoulsB;
+    toA.textContent = g.timeoutsA;
+    toB.textContent = g.timeoutsB;
+
+    sumAName.textContent = g.teamAName;
+    sumBName.textContent = g.teamBName;
+    sumAScore.textContent = g.scoreA;
+    sumBScore.textContent = g.scoreB;
+    sumTF.textContent = `${g.teamFoulsA}-${g.teamFoulsB}`;
+    sumTO.textContent = `${g.timeoutsA}-${g.timeoutsB}`;
+
+    notes.value = g.notes ?? "";
+  }
+
+  // Shared action: atomic update + event
+  async function mutateGame(mutator, eventType, eventPayload){
+    const id = currentGameId;
+    if (!id) return;
+    await runTransaction(db, async (tx)=>{
+      const ref = gameRef(id);
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Missing game");
+      const g = snap.data();
+      const updated = mutator(structuredClone(g));
+      updated.updatedAt = serverTimestamp();
+      tx.update(ref, updated);
+    });
+    await addEvent(id, eventType, eventPayload);
+  }
+
+  // Quarter rules:
+  // - team fouls reset each quarter
+  // - halftime: moving from Q2->Q3 caps timeouts remaining to max 2
+  async function setQuarter(newQ){
+    newQ = clamp0(newQ);
+    if (newQ < 1 || newQ > 4) return;
+
+    await mutateGame((g)=>{
+      const oldQ = g.quarter;
+
+      g.quarter = newQ;
+
+      // reset team fouls if quarter changed
+      if (newQ !== oldQ){
+        g.teamFoulsA = 0;
+        g.teamFoulsB = 0;
+      }
+
+      // halftime rule: if moving into Q3, cap remaining timeouts to 2
+      // (use-it-or-lose-it: max carry to second half is 2)
+      if (oldQ <= 2 && newQ >= 3){
+        g.timeoutsA = Math.min(g.timeoutsA, 2);
+        g.timeoutsB = Math.min(g.timeoutsB, 2);
+      }
+
+      return g;
+    }, "QUARTER_SET", { label: `Quarter set to Q${newQ} (TF reset; halftime cap applied if Q3+)` });
+  }
+
+  async function adjust(path, delta, label){
+    await mutateGame((g)=>{
+      g[path] = clamp0((g[path] ?? 0) + delta);
+      return g;
+    }, "ADJUST", { label, delta, path });
+  }
+
+  async function setValue(path, value, label){
+    value = clamp0(value);
+    await mutateGame((g)=>{
+      g[path] = value;
+      return g;
+    }, "SET", { label, value, path });
+  }
+
+  // Undo: delete latest event AND reverse its effect for ADJUST/SET/PF updates.
+  // We keep undo simple: only undo the latest event in the log we created (not notes typing).
+  async function undoLast(){
+    const id = currentGameId;
+    if (!id) return;
+
+    // Read latest event doc
+    const latestQ = query(eventsCol(id), orderBy("ts","desc"), limit(1));
+    const unsub = onSnapshot(latestQ, async (snap)=>{
+      unsub();
+      if (snap.empty) return;
+      const d = snap.docs[0];
+      const e = d.data();
+
+      // Undo only supported types
+      if (e.type === "ADJUST"){
+        await adjust(e.path, -clamp0(e.delta) * (e.delta >= 0 ? 1 : -1), `UNDO ${e.label}`);
+        // The above line is messy; better: reverse exact delta with sign:
+        // We'll fix properly below.
+      }
+    });
+  }
+
+  // Better undo (reverse exact delta)
+  async function undoLastSafe(){
+    const id = currentGameId;
+    if (!id) return;
+
+    // get latest event via getDoc isn’t available for query; easiest: one-time snapshot then proceed.
+    const latestQ = query(eventsCol(id), orderBy("ts","desc"), limit(1));
+    let latestDoc = null;
+    const stop = onSnapshot(latestQ, (snap)=>{
+      stop();
+      latestDoc = snap.empty ? null : snap.docs[0];
+      (async ()=>{
+        if (!latestDoc) return;
+
+        const e = latestDoc.data();
+        const reverse = async () => {
+          if (e.type === "ADJUST" && typeof e.delta === "number" && typeof e.path === "string"){
+            await mutateGame((g)=>{
+              g[e.path] = clamp0((g[e.path] ?? 0) - e.delta);
+              return g;
+            }, "UNDO", { label: `Undo: ${e.label}` });
+            await deleteDoc(latestDoc.ref);
+            return;
+          }
+          if (e.type === "SET" && typeof e.value === "number" && typeof e.path === "string"){
+            // Can't know previous value unless stored. So for SET we skip undo.
+            alert("Undo for 'Set…' actions is disabled (needs previous value tracking). Use Adjust buttons instead.");
+            return;
+          }
+          if (e.type === "PF" && e.team && e.playerId && typeof e.delta === "number"){
+            // reverse player foul
+            const pref = doc(db, "games", id, "players_" + e.team, e.playerId);
+            await runTransaction(db, async (tx)=>{
+              const ps = await tx.get(pref);
+              if (!ps.exists()) return;
+              const p = ps.data();
+              tx.update(pref, { pf: clamp0((p.pf ?? 0) - e.delta) });
+            });
+            await addEvent(id, "UNDO", { label: `Undo: PF ${e.delta > 0 ? "+" : ""}${e.delta}` });
+            await deleteDoc(latestDoc.ref);
+            return;
+          }
+          alert("Undo not supported for that action.");
+        };
+        await reverse();
+      })().catch(console.error);
+    });
+  }
+
+  // Players rendering + actions
+  let playersCacheA = [];
+  let playersCacheB = [];
+
+  function renderPlayers(team, players){
+    if (team === "A") playersCacheA = players;
+    if (team === "B") playersCacheB = players;
+    refreshPfDropdown();
+    renderPfTable();
+  }
+
+  function refreshPfDropdown(){
+    const team = pfTeam.value;
+    const list = team === "A" ? playersCacheA : playersCacheB;
+    pfPlayer.innerHTML = list.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (PF ${p.pf ?? 0})</option>`).join("");
+  }
+
+  function renderPfTable(){
+    const rows = [];
+    const add = (team, list) => {
+      const tn = (team === "A") ? (teamAName.value || "Team A") : (teamBName.value || "Team B");
+      const sorted = list.slice().sort((a,b)=> (b.pf??0)-(a.pf??0) || (a.name||"").localeCompare(b.name||""));
+      for (const p of sorted){
+        rows.push([tn, p.name, String(p.pf ?? 0)]);
+      }
+    };
+    add("A", playersCacheA);
+    add("B", playersCacheB);
+
+    pfTable.innerHTML = `
+      <thead><tr><th>Team</th><th>Player</th><th style="text-align:right">PF</th></tr></thead>
+      <tbody>
+        ${rows.length ? rows.map(r=>`
+          <tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td style="text-align:right"><b>${escapeHtml(r[2])}</b></td></tr>
+        `).join("") : `<tr><td colspan="3" class="tiny">Add players to track personal fouls.</td></tr>`}
+      </tbody>
+    `;
+  }
+
+  async function addPlayer(team, name){
+    name = name.trim();
+    if (!name) return;
+    const id = currentGameId;
+    if (!id) return;
+    await addDoc(playersCol(id, team), { name, pf: 0 });
+    await addEvent(id, "ROSTER", { label: `Add player (${team}): ${name}` });
+  }
+
+  async function clearRoster(team){
+    const id = currentGameId;
+    if (!id) return;
+    if (!confirm(`Clear roster for Team ${team}?`)) return;
+
+    // Brutal but simple for now: delete docs one by one from cache
+    const list = team === "A" ? playersCacheA : playersCacheB;
+    for (const p of list){
+      await deleteDoc(doc(db, "games", id, "players_" + team, p.id));
+    }
+    await addEvent(id, "ROSTER", { label: `Clear roster Team ${team}` });
+  }
+
+  async function adjustPF(delta){
+    const id = currentGameId;
+    if (!id) return;
+    const team = pfTeam.value;
+    const pid = pfPlayer.value;
+    if (!pid) return alert("Select/add a player first.");
+
+    const pref = doc(db, "games", id, "players_" + team, pid);
+    await runTransaction(db, async (tx)=>{
+      const ps = await tx.get(pref);
+      if (!ps.exists()) throw new Error("Missing player");
+      const p = ps.data();
+      tx.update(pref, { pf: clamp0((p.pf ?? 0) + delta) });
+    });
+    await addEvent(id, "PF", { team, playerId: pid, delta, label: `PF ${delta > 0 ? "+" : ""}${delta}` });
+  }
+
+  // Events rendering
+  function renderEvents(events){
+    if (!events.length){
+      eventLog.innerHTML = `<div class="logItem"><div class="tiny">No events yet.</div></div>`;
+      return;
+    }
+    eventLog.innerHTML = events.map(e=>{
       const tagClass =
-        e.type === "SCORE" ? "good" :
-        e.type === "TEAMFOUL" ? "warn" :
-        e.type === "TIMEOUT" ? "warn" :
-        e.type === "PLAYER_PF" ? "bad" :
-        e.type === "PLAYER_PTS" ? "good" :
-        e.type === "RESET" ? "warn" : "";
-      const tagText =
-        e.type === "SCORE" ? "SCORE" :
-        e.type === "TEAMFOUL" ? "TEAM FOUL" :
-        e.type === "TIMEOUT" ? "TIMEOUT" :
-        e.type === "PLAYER_PF" ? "PF" :
-        e.type === "PLAYER_PTS" ? "PTS" :
-        e.type;
-
-      const delta = (e.delta === 0 || e.delta == null) ? "" : (e.delta > 0 ? `+${e.delta}` : `${e.delta}`);
-      const playerName = (e.playerId && e.team) ? (roster(e.team).find(p => p.id === e.playerId)?.name ?? "") : "";
-
+        e.type === "ADJUST" ? "warn" :
+        e.type === "PF" ? "bad" :
+        e.type === "QUARTER_SET" ? "warn" :
+        e.type === "ROSTER" ? "" :
+        e.type === "GAME_CREATE" ? "good" :
+        e.type === "UNDO" ? "warn" : "";
       return `
         <div class="logItem">
-          <div class="logLeft">
-            <span class="tag ${tagClass}">${tagText}</span>
-            <span class="tiny">P${e.period}</span>
-            <span><b>${escapeHtml(e.label)}</b></span>
-            ${playerName ? `<span class="tag">${escapeHtml(playerName)}</span>` : ""}
-            ${t ? `<span class="tag">${escapeHtml(t)}</span>` : ""}
+          <div class="row" style="gap:8px">
+            <span class="tag ${tagClass}">${escapeHtml(e.type)}</span>
+            <span class="tiny">${escapeHtml(e.label ?? "")}</span>
           </div>
-          <div class="tiny">${escapeHtml(delta)}<br>${new Date(e.ts).toLocaleTimeString()}</div>
+          <div class="tiny">${e.ts?.toDate ? e.ts.toDate().toLocaleTimeString() : ""}</div>
         </div>
       `;
     }).join("");
   }
 
-  function renderPFTable(){
-    const headers = ["Team","Player","PF", state.pointsEnabled ? "PTS" : "", ""].filter(Boolean);
-    const rows = [];
+  // ---- Wire UI actions
+  createGameBtn.addEventListener("click", createGame);
+  el("refreshBtn").addEventListener("click", ()=> location.reload());
 
-    const addRows = (team) => {
-      const r = roster(team).slice().sort((a,b) => b.PF - a.PF || a.name.localeCompare(b.name));
-      for (const p of r){
-        rows.push([
-          teamName(team),
-          p.name,
-          String(p.PF),
-          state.pointsEnabled ? String(p.PTS) : null,
-          "" // spacer
-        ].filter(x => x !== null));
-      }
-    };
-    addRows("A");
-    addRows("B");
+  navLobbyBtn.addEventListener("click", ()=> location.hash = "#");
 
-    pfTable.innerHTML = `
-      <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
-      <tbody>
-        ${rows.length ? rows.map(r => `
-          <tr>
-            <td>${escapeHtml(r[0])}</td>
-            <td>${escapeHtml(r[1])}</td>
-            <td><b>${escapeHtml(r[2])}</b></td>
-            ${state.pointsEnabled ? `<td>${escapeHtml(r[3])}</td>` : ``}
-            <td></td>
-          </tr>
-        `).join("") : `<tr><td colspan="${headers.length}" class="tiny">Add players to start tracking personal fouls.</td></tr>`}
-      </tbody>
-    `;
-  }
+  // Score/TF/TO buttons
+  document.querySelectorAll("[data-act]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const act = btn.dataset.act;
+      if (!currentGameId) return;
 
-  function renderAll(){
-    refreshPlayerDropdown();
-    renderSummary();
-    renderLog();
-    renderPFTable();
-  }
+      const setPrompt = async (team) => {
+        const isA = team === "A";
+        const path = isA ? "scoreA" : "scoreB";
+        const cur = isA ? scoreA.textContent : scoreB.textContent;
+        const v = prompt(`Set Team ${team} score to:`, cur);
+        if (v == null) return;
+        await setValue(path, v, `Score ${team}`);
+      };
 
-  // ---------- Action routing ----------
-  function handleAction(code){
-    // Team scores
-    if (code === "A_SCORE_1") return applyDelta("scoreA", +1, {type:"SCORE", team:"A", label:"Score A"});
-    if (code === "A_SCORE_2") return applyDelta("scoreA", +2, {type:"SCORE", team:"A", label:"Score A"});
-    if (code === "A_SCORE_3") return applyDelta("scoreA", +3, {type:"SCORE", team:"A", label:"Score A"});
-    if (code === "A_SCORE_-1") return applyDelta("scoreA", -1, {type:"SCORE", team:"A", label:"Score A"});
-    if (code === "A_SCORE_RESET") return setValue("scoreA", 0, {type:"SCORE", team:"A", label:"Score A"});
-    if (code === "A_SCORE_SET"){
-      const v = prompt("Set Team A score to:", String(state.scoreA));
-      if (v == null) return;
-      return setValue("scoreA", clamp0(v), {type:"SCORE", team:"A", label:"Score A"});
-    }
+      // Score
+      if (act === "A_SSET") return setPrompt("A");
+      if (act === "B_SSET") return setPrompt("B");
+      if (act === "A_S0") return setValue("scoreA", 0, "Score A");
+      if (act === "B_S0") return setValue("scoreB", 0, "Score B");
+      if (act.startsWith("A_S")) return adjust("scoreA", Number(act.slice(3)), `Score A ${act.slice(2)}`);
+      if (act.startsWith("B_S")) return adjust("scoreB", Number(act.slice(3)), `Score B ${act.slice(2)}`);
 
-    if (code === "B_SCORE_1") return applyDelta("scoreB", +1, {type:"SCORE", team:"B", label:"Score B"});
-    if (code === "B_SCORE_2") return applyDelta("scoreB", +2, {type:"SCORE", team:"B", label:"Score B"});
-    if (code === "B_SCORE_3") return applyDelta("scoreB", +3, {type:"SCORE", team:"B", label:"Score B"});
-    if (code === "B_SCORE_-1") return applyDelta("scoreB", -1, {type:"SCORE", team:"B", label:"Score B"});
-    if (code === "B_SCORE_RESET") return setValue("scoreB", 0, {type:"SCORE", team:"B", label:"Score B"});
-    if (code === "B_SCORE_SET"){
-      const v = prompt("Set Team B score to:", String(state.scoreB));
-      if (v == null) return;
-      return setValue("scoreB", clamp0(v), {type:"SCORE", team:"B", label:"Score B"});
-    }
+      // Team fouls
+      if (act.startsWith("A_TF")) return adjust("teamFoulsA", Number(act.slice(4)), `Team Fouls A ${act.slice(3)}`);
+      if (act.startsWith("B_TF")) return adjust("teamFoulsB", Number(act.slice(4)), `Team Fouls B ${act.slice(3)}`);
 
-    // Team fouls
-    if (code === "A_TEAMFOUL_+1") return applyDelta("teamFoulsA", +1, {type:"TEAMFOUL", team:"A", label:"Team Fouls A"});
-    if (code === "A_TEAMFOUL_-1") return applyDelta("teamFoulsA", -1, {type:"TEAMFOUL", team:"A", label:"Team Fouls A"});
-    if (code === "B_TEAMFOUL_+1") return applyDelta("teamFoulsB", +1, {type:"TEAMFOUL", team:"B", label:"Team Fouls B"});
-    if (code === "B_TEAMFOUL_-1") return applyDelta("teamFoulsB", -1, {type:"TEAMFOUL", team:"B", label:"Team Fouls B"});
-
-    // Timeouts
-    if (code === "A_TO_+1") return applyDelta("timeoutsA", +1, {type:"TIMEOUT", team:"A", label:"Timeouts A"});
-    if (code === "A_TO_-1") return applyDelta("timeoutsA", -1, {type:"TIMEOUT", team:"A", label:"Timeouts A"});
-    if (code === "B_TO_+1") return applyDelta("timeoutsB", +1, {type:"TIMEOUT", team:"B", label:"Timeouts B"});
-    if (code === "B_TO_-1") return applyDelta("timeoutsB", -1, {type:"TIMEOUT", team:"B", label:"Timeouts B"});
-
-    // Player PF
-    if (code === "PLAYER_PF_+1" || code === "PLAYER_PF_-1"){
-      const {team, player} = getSelectedPlayer();
-      if (!player) return alert("Add/select a player first.");
-      const delta = (code === "PLAYER_PF_+1") ? +1 : -1;
-      player.PF = clamp0(player.PF + delta);
-      pushEvent({ts: nowISO(), period: state.period, type:"PLAYER_PF", team, playerId: player.id, delta, label:"Personal foul"});
-      save();
-      renderAll();
-      return;
-    }
-
-    // Optional points
-    if (code.startsWith("PLAYER_PTS_")){
-      if (!state.pointsEnabled) return;
-      const {team, player} = getSelectedPlayer();
-      if (!player) return alert("Add/select a player first.");
-      const delta = Number(code.split("_").pop()); // +1, +2, +3, -1...
-      player.PTS = clamp0(player.PTS + delta);
-      pushEvent({ts: nowISO(), period: state.period, type:"PLAYER_PTS", team, playerId: player.id, delta, label:"Player points"});
-      save();
-      renderAll();
-      return;
-    }
-  }
-
-  // ---------- Wiring ----------
-  document.querySelectorAll("[data-act]").forEach(btn => {
-    btn.addEventListener("click", () => handleAction(btn.dataset.act));
+      // Timeouts remaining (use = -1)
+      if (act.startsWith("A_TO")) return adjust("timeoutsA", Number(act.slice(4)), `Timeouts A ${act.slice(3)}`);
+      if (act.startsWith("B_TO")) return adjust("timeoutsB", Number(act.slice(4)), `Timeouts B ${act.slice(3)}`);
+    });
   });
 
-  el("addPlayerBtn").addEventListener("click", addPlayer);
-  playerNameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addPlayer(); });
-
-  teamSelect.addEventListener("change", () => { refreshPlayerDropdown(); renderPFTable(); });
-
-  notes.addEventListener("input", () => { state.notes = notes.value; save(); });
-
-  pointsToggle.addEventListener("change", () => {
-    state.pointsEnabled = !!pointsToggle.checked;
-    pushEvent({ts: nowISO(), period: state.period, type:"SETTING", team:null, playerId:null, delta:0, label:`Points tracking ${state.pointsEnabled ? "ON" : "OFF"}`});
-    save();
-    renderAll();
+  // Quarter change
+  qUpBtn.addEventListener("click", async ()=>{
+    const q = clamp0(gameQuarter.textContent.replace("Q",""));
+    await setQuarter(Math.min(4, q + 1));
+  });
+  qDownBtn.addEventListener("click", async ()=>{
+    const q = clamp0(gameQuarter.textContent.replace("Q",""));
+    await setQuarter(Math.max(1, q - 1));
   });
 
-  el("undoBtn").addEventListener("click", undoLast);
+  // Names + notes (live)
+  teamAName.addEventListener("input", async ()=>{
+    if (!currentGameId) return;
+    await updateDoc(gameRef(currentGameId), { teamAName: teamAName.value || "Team A", updatedAt: serverTimestamp() });
+  });
+  teamBName.addEventListener("input", async ()=>{
+    if (!currentGameId) return;
+    await updateDoc(gameRef(currentGameId), { teamBName: teamBName.value || "Team B", updatedAt: serverTimestamp() });
+  });
 
-  el("periodUp").addEventListener("click", () => { state.period = Math.min(20, state.period + 1); save(); renderAll(); });
-  el("periodDown").addEventListener("click", () => { state.period = Math.max(1, state.period - 1); save(); renderAll(); });
+  let notesTimer = null;
+  notes.addEventListener("input", ()=>{
+    if (!currentGameId) return;
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(async ()=>{
+      await updateDoc(gameRef(currentGameId), { notes: notes.value || "", updatedAt: serverTimestamp() });
+      await addEvent(currentGameId, "NOTE", { label: "Notes updated" });
+    }, 600);
+  });
 
-  el("resetTeamFoulsBtn").addEventListener("click", resetTeamFouls);
-  el("resetAllBtn").addEventListener("click", resetAllCounters);
+  // PF
+  pfTeam.addEventListener("change", refreshPfDropdown);
+  addPlayerBtn.addEventListener("click", async ()=>{
+    await addPlayer(pfTeam.value, addPlayerInput.value);
+    addPlayerInput.value = "";
+  });
+  addPlayerInput.addEventListener("keydown", (e)=>{ if (e.key === "Enter") addPlayerBtn.click(); });
+  pfPlusBtn.addEventListener("click", ()=> adjustPF(+1));
+  pfMinusBtn.addEventListener("click", ()=> adjustPF(-1));
+  clearRosterBtn.addEventListener("click", ()=> clearRoster(pfTeam.value));
 
-  el("clearRosterTeamBtn").addEventListener("click", clearRosterTeam);
-
-  el("quickTechNoteBtn").addEventListener("click", () => {
-    const t = prompt("Quick note (tech / warning / incident):");
+  quickNoteBtn.addEventListener("click", async ()=>{
+    const t = prompt("Quick note (tech / incident / ref feedback):");
     if (t == null) return;
-    const stamp = `\n[${new Date().toLocaleTimeString()} P${state.period}] ${t}`;
-    state.notes = (state.notes || "") + stamp;
-    notes.value = state.notes;
-    pushEvent({ts: nowISO(), period: state.period, type:"NOTE", team:null, playerId:null, delta:0, label:`Note added`});
-    save();
-    renderAll();
+    const stamp = `[${new Date().toLocaleTimeString()} Q${gameQuarter.textContent.replace("Q","")}] ${t}`;
+    notes.value = (notes.value ? notes.value + "\n" : "") + stamp;
+    await updateDoc(gameRef(currentGameId), { notes: notes.value, updatedAt: serverTimestamp() });
+    await addEvent(currentGameId, "NOTE", { label: "Quick note added" });
   });
 
-  el("copySummaryBtn").addEventListener("click", copySummary);
-  el("exportBtn").addEventListener("click", exportCSV);
-
-  el("newGameBtn").addEventListener("click", () => {
-    if (!confirm("Start a new game? This replaces your current saved game.")) return;
-    state = blankGame();
-    save();
-    syncUI(true);
+  // End game
+  endGameBtn.addEventListener("click", async ()=>{
+    if (!currentGameId) return;
+    if (!confirm("End game? This removes it from the live lobby list.")) return;
+    await updateDoc(gameRef(currentGameId), { status: "final", updatedAt: serverTimestamp() });
+    await addEvent(currentGameId, "GAME_END", { label: "Game ended" });
+    location.hash = "#";
   });
 
-  teamAName.addEventListener("input", () => { state.teamAName = teamAName.value || "Team A"; save(); renderAll(); });
-  teamBName.addEventListener("input", () => { state.teamBName = teamBName.value || "Team B"; save(); renderAll(); });
+  // Undo (supports ADJUST and PF; SET undo disabled)
+  undoBtn.addEventListener("click", undoLastSafe);
 
-  function syncUI(full){
-    gameIdLabel.textContent = state.gameId;
-    periodLabel.textContent = state.period;
-
-    if (full){
-      teamAName.value = state.teamAName;
-      teamBName.value = state.teamBName;
-      notes.value = state.notes ?? "";
-      pointsToggle.checked = !!state.pointsEnabled;
+  // ---- Routing
+  function route(){
+    const h = location.hash || "#";
+    if (h.startsWith("#game=")){
+      const id = h.split("=").slice(1).join("=");
+      openGame(id);
+    } else {
+      showLobby();
     }
-    renderAll();
   }
 
-  // init
-  syncUI(true);
+  // ---- Init
+  initCourtSelect();
+  // Live lobby subscription stays on; game view subscriptions replace it.
+  const unsubLobby = subscribeLobby();
+
+  // hash routing
+  window.addEventListener("hashchange", route);
+  route();
+
+  connLabel.textContent = "LIVE";
 </script>
 </body>
 </html>
