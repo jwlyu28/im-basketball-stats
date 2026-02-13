@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IMLeagues Supervisor Tool</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b0f17;color:#e9f0f7}
+    header{position:sticky;top:0;background:#0b0f17;border-bottom:1px solid #243246;padding:12px 14px}
+    main{max-width:1000px;margin:0 auto;padding:14px;display:grid;gap:12px}
+    .card{border:1px solid #243246;background:#121a27;border-radius:14px;padding:12px}
+    input,button,select{font-size:14px;padding:10px;border-radius:12px;border:1px solid #243246;background:#0e1522;color:#e9f0f7}
+    button{cursor:pointer}
+    button.primary{background:#4da3ff;border-color:transparent;color:#06101c;font-weight:900}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (max-width: 700px){ .grid{grid-template-columns:1fr} }
+    .tiny{color:#8aa0b8;font-size:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #243246;padding:10px 8px;text-align:left}
+    th{color:#8aa0b8}
+  </style>
+</head>
+<body>
+<header>
+  <div style="font-weight:900">IMLeagues Supervisor Tool (Local)</div>
+  <div class="tiny" id="status">Not logged in</div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:900">1) Login (server-side)</div>
+        <div class="tiny">This uses your server’s .env credentials. Nothing is typed in the browser.</div>
+      </div>
+      <button class="primary" id="loginBtn">Login to IMLeagues</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="font-weight:900">2) Load Games</div>
+    <div class="tiny">Pick a date range, then load. (Start/end are ISO datetimes.)</div>
+    <div class="grid" style="margin-top:10px">
+      <div>
+        <div class="tiny">Start (ISO)</div>
+        <input id="start" placeholder="2026-02-13T00:00:00-05:00" />
+      </div>
+      <div>
+        <div class="tiny">End (ISO)</div>
+        <input id="end" placeholder="2026-02-13T23:59:59-05:00" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:flex-end">
+      <button id="loadGamesBtn" class="primary">Load games</button>
+    </div>
+
+    <div id="gamesOut" class="tiny" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card" id="scoreCard" style="display:none">
+    <div style="font-weight:900">3) Submit Score (Admin)</div>
+    <div class="tiny">This calls v3/me/games/savescore on IMLeagues (through your server).</div>
+
+    <div class="grid" style="margin-top:10px">
+      <div>
+        <div class="tiny">Game ID</div>
+        <input id="gameId" />
+      </div>
+      <div>
+        <div class="tiny">Game Type (number)</div>
+        <input id="gameType" placeholder="0" />
+      </div>
+      <div>
+        <div class="tiny">Team1 score (Home)</div>
+        <input id="t1" placeholder="0" />
+      </div>
+      <div>
+        <div class="tiny">Team2 score (Away)</div>
+        <input id="t2" placeholder="0" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;justify-content:flex-end">
+      <button id="saveScoreBtn" class="primary">Save score</button>
+    </div>
+
+    <pre id="saveOut" class="tiny" style="white-space:pre-wrap"></pre>
+  </section>
+</main>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const loginBtn = document.getElementById("loginBtn");
+  const loadGamesBtn = document.getElementById("loadGamesBtn");
+  const gamesOut = document.getElementById("gamesOut");
+
+  const scoreCard = document.getElementById("scoreCard");
+  const gameIdEl = document.getElementById("gameId");
+  const gameTypeEl = document.getElementById("gameType");
+  const t1El = document.getElementById("t1");
+  const t2El = document.getElementById("t2");
+  const saveScoreBtn = document.getElementById("saveScoreBtn");
+  const saveOut = document.getElementById("saveOut");
+
+  // Convenience: autofill start/end with today in local offset if empty
+  function defaultIsoRangeToday() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,"0");
+    const d = String(now.getDate()).padStart(2,"0");
+    // leave timezone in your manual input; simplest: use local "Z-less" and let server pass through
+    return {
+      start: `${y}-${m}-${d}T00:00:00`,
+      end: `${y}-${m}-${d}T23:59:59`
+    };
+  }
+
+  const startEl = document.getElementById("start");
+  const endEl = document.getElementById("end");
+  const def = defaultIsoRangeToday();
+  if (!startEl.value) startEl.value = def.start;
+  if (!endEl.value) endEl.value = def.end;
+
+  loginBtn.onclick = async () => {
+    statusEl.textContent = "Logging in…";
+    const r = await fetch("/api/iml/login", { method:"POST" });
+    const j = await r.json();
+    if (!j.ok) {
+      statusEl.textContent = "Login failed: " + j.error;
+      return;
+    }
+    statusEl.textContent = "Logged in (server has token).";
+  };
+
+  loadGamesBtn.onclick = async () => {
+    gamesOut.textContent = "Loading…";
+    const start = encodeURIComponent(startEl.value);
+    const end = encodeURIComponent(endEl.value);
+    const r = await fetch(`/api/iml/games?start=${start}&end=${end}`);
+    const j = await r.json();
+    if (!j.ok) {
+      gamesOut.textContent = "Failed: " + j.error;
+      return;
+    }
+
+    // We don’t know exact shape of the response your school uses, so we display it raw + try to find game list.
+    gamesOut.innerHTML = `
+      <div class="tiny">Raw response (truncated):</div>
+      <pre class="tiny" style="white-space:pre-wrap">${JSON.stringify(j.data, null, 2).slice(0, 4000)}</pre>
+      <div class="tiny">If you see gameId/gameType/team ids in there, click a game in your head and fill the score form below.</div>
+    `;
+
+    scoreCard.style.display = "block";
+  };
+
+  saveScoreBtn.onclick = async () => {
+    saveOut.textContent = "Saving…";
+    const body = {
+      gameType: Number(gameTypeEl.value),
+      team1Score: t1El.value,
+      team2Score: t2El.value
+    };
+    const r = await fetch(`/api/iml/games/${encodeURIComponent(gameIdEl.value)}/savescore`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    saveOut.textContent = JSON.stringify(j, null, 2);
+  };
+</script>
+</body>
+</html>
