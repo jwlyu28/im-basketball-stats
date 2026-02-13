@@ -18,7 +18,7 @@
       display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap
     }
     header h1{margin:0;font-size:15px;letter-spacing:.2px}
-    header .sub{color:var(--muted);font-size:12px}
+    header .sub{color:var(--muted);font-size:12px;min-height:14px}
     main{padding:14px;max-width:1250px;margin:0 auto;display:grid;gap:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -49,6 +49,7 @@
     .courtNum{font-weight:900}
     .statusLive{color:#bff2d2}
     .statusIdle{color:var(--muted)}
+
     .bigNum{font-size:44px;font-weight:1000;letter-spacing:1px;line-height:1}
     .bigLabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
     .teamName{font-size:16px;font-weight:900}
@@ -76,7 +77,7 @@
 <header>
   <div>
     <h1 id="hdrTitle">IM Supervisor Console</h1>
-    <div class="sub" id="hdrSub">Live lobby • 6 courts • iPad-ready</div>
+    <div class="sub" id="hdrSub"></div>
   </div>
   <div class="row">
     <div class="pill"><span>Connection</span> <b id="connLabel">…</b></div>
@@ -112,7 +113,7 @@
               <option value="4">Court 4</option>
               <option value="5">Court 5</option>
               <option value="6">Court 6</option>
-</select>
+            </select>
           </div>
           <div>
             <label>Start quarter</label>
@@ -134,7 +135,7 @@
             <input id="newTeamB" placeholder="Team B name"/>
           </div>
         </div>
-        <div class="row" style="margin-top:10px;justify-content:space-between">
+        <div class="row" style="margin-top:10px;justify-content:flex-end">
           <button class="primary" id="createGameBtn">Create game</button>
         </div>
       </div>
@@ -280,14 +281,14 @@
           <div class="row">
             <button class="ghost" id="qDownBtn">← Quarter</button>
             <button class="ghost" id="qUpBtn">Quarter →</button>
-            <span class="tiny">Team fouls auto-reset on quarter change.</span>
+            <span class="tiny">Team fouls reset on quarter change.</span>
           </div>
         </div>
 
         <div class="dangerLine"></div>
 
-        <div style="font-weight:900">Personal fouls (required)</div>
-        <div class="tiny">Pick team → player → tap +PF. Add roster if needed.</div>
+        <div style="font-weight:900">Personal fouls</div>
+        <div class="tiny">Pick team → player → +PF.</div>
 
         <div class="split" style="margin-top:10px">
           <div>
@@ -317,7 +318,7 @@
 
         <div class="dangerLine"></div>
 
-        <label>Supervisor notes (ref feedback / incidents)</label>
+        <label>Supervisor notes</label>
         <textarea id="notes"></textarea>
       </div>
 
@@ -349,29 +350,39 @@
 </main>
 
 <script type="module">
-  // Firebase v9+ (CDN)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import {
-    getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDoc, deleteDoc,
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
     onSnapshot, query, where, orderBy, serverTimestamp, runTransaction, limit
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // 1) PASTE YOUR firebaseConfig here
-  const firebaseConfig = PASTE_YOUR_FIREBASE_CONFIG_HERE;
+  // IMPORTANT:
+  // Replace the object below with your Firebase Web App config.
+  // It MUST be a real JS object (not a string, not a placeholder).
+  const firebaseConfig = {
+    // apiKey: "...",
+    // authDomain: "...",
+    // projectId: "...",
+    // storageBucket: "...",
+    // messagingSenderId: "...",
+    // appId: "..."
+  };
+
+  // If you forget to paste config, fail loudly:
+  if (!firebaseConfig.projectId) {
+    alert("Firebase config missing. Paste your firebaseConfig object into index.html (firebaseConfig.projectId is empty).");
+  }
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // ---- DOM helpers
   const el = (id) => document.getElementById(id);
   const connLabel = el("connLabel");
 
-  // Views
   const viewLobby = el("viewLobby");
   const viewGame = el("viewGame");
   const navLobbyBtn = el("navLobbyBtn");
 
-  // Lobby inputs
   const courtSelect = el("courtSelect");
   const startQuarter = el("startQuarter");
   const newTeamA = el("newTeamA");
@@ -380,7 +391,6 @@
   const courtsGrid = el("courtsGrid");
   const ongoingList = el("ongoingList");
 
-  // Game bindings
   const gameCourt = el("gameCourt");
   const gameId = el("gameId");
   const gameQuarter = el("gameQuarter");
@@ -423,14 +433,16 @@
   const sumTF = el("sumTF");
   const sumTO = el("sumTO");
 
-  // ---- State
+  // State
   let currentGameId = null;
   let unsubGame = null;
   let unsubEvents = null;
   let unsubPlayersA = null;
   let unsubPlayersB = null;
 
-  // ---- Utils
+  // Lobby subscription stays always on (fine for 6 courts)
+  let unsubLobby = null;
+
   const clamp0 = (n) => {
     const x = Number(n);
     if (!Number.isFinite(x)) return 0;
@@ -443,7 +455,6 @@
   const eventsCol = (id) => collection(db, "games", id, "events");
   const playersCol = (id, team) => collection(db, "games", id, "players_" + team); // players_A / players_B
 
-  // ---- Firestore doc shapes
   function newGameDoc({court, q, teamA, teamB}){
     return {
       status: "live",
@@ -464,7 +475,6 @@
   }
 
   async function addEvent(gameId, type, payload){
-    // Keep events append-only for shared undo.
     await addDoc(eventsCol(gameId), {
       ts: serverTimestamp(),
       type,
@@ -472,37 +482,36 @@
     });
   }
 
-  // ---- Lobby
+  // --------- FIXED: Create game shows errors + disables button
+  async function createGame(){
+    try {
+      createGameBtn.disabled = true;
+      createGameBtn.textContent = "Creating...";
 
-async function createGame(){
-  try {
-    createGameBtn.disabled = true;
-    createGameBtn.textContent = "Creating...";
+      const court = clamp0(courtSelect.value);
+      const q = clamp0(startQuarter.value);
+      const teamA = newTeamA.value.trim();
+      const teamB = newTeamB.value.trim();
 
-    const court = clamp0(courtSelect.value);
-    const q = clamp0(startQuarter.value);
-    const teamA = newTeamA.value.trim();
-    const teamB = newTeamB.value.trim();
+      if (!court || court < 1 || court > 6) throw new Error("Pick a court (1–6).");
+      if (!q || q < 1 || q > 4) throw new Error("Pick a quarter (1–4).");
 
-    if (!court || court < 1 || court > 6) throw new Error("Pick a court (1–6).");
-    if (!q || q < 1 || q > 4) throw new Error("Pick a quarter (1–4).");
+      const ref = await addDoc(collection(db, "games"), newGameDoc({court, q, teamA, teamB}));
+      await addEvent(ref.id, "GAME_CREATE", { label: `Game created on Court ${court} (Q${q})` });
 
-    const ref = await addDoc(collection(db, "games"), newGameDoc({court, q, teamA, teamB}));
-    await addEvent(ref.id, "GAME_CREATE", { label: `Game created on Court ${court} (Q${q})` });
-
-    location.hash = "#game=" + ref.id;
-  } catch (err) {
-    console.error(err);
-    alert("Create game failed:\n" + (err?.message || String(err)));
-    connLabel.textContent = "ERROR";
-  } finally {
-    createGameBtn.disabled = false;
-    createGameBtn.textContent = "Create game";
+      location.hash = "#game=" + ref.id;
+    } catch (err) {
+      console.error(err);
+      alert("Create game failed:\n" + (err?.message || String(err)));
+      connLabel.textContent = "ERROR";
+    } finally {
+      createGameBtn.disabled = false;
+      createGameBtn.textContent = "Create game";
+    }
   }
-}
 
+  // Lobby rendering
   function renderCourts(games){
-    // map by court
     const byCourt = new Map();
     for (const g of games) byCourt.set(g.court, g);
 
@@ -516,9 +525,8 @@ async function createGame(){
               <div class="courtNum">Court ${c}</div>
               <div class="statusIdle">Idle</div>
             </div>
-            <div class="tiny" style="margin-top:8px">No live game.</div>
             <div class="row" style="margin-top:10px">
-              <button class="primary" data-startcourt="${c}">Start here</button>
+              <button class="primary" data-startcourt="${c}">Start</button>
             </div>
           </div>
         `);
@@ -534,7 +542,7 @@ async function createGame(){
               <div><b>${escapeHtml(g.teamBName)}</b> ${g.scoreB} • TF ${g.teamFoulsB} • TO ${g.timeoutsB}</div>
             </div>
             <div class="row" style="margin-top:10px">
-              <button class="primary" data-opengame="${g.id}">Open console</button>
+              <button class="primary" data-opengame="${g.id}">Open</button>
             </div>
           </div>
         `);
@@ -593,7 +601,7 @@ async function createGame(){
     });
   }
 
-  // ---- Game view
+  // Game view subscriptions
   function teardownGameSubs(){
     if (unsubGame) unsubGame();
     if (unsubEvents) unsubEvents();
@@ -619,9 +627,8 @@ async function createGame(){
     viewGame.style.display = "block";
     navLobbyBtn.style.display = "inline-flex";
     el("hdrTitle").textContent = "Game Console";
-    el("hdrSub").textContent = "Score • Team Fouls • Timeouts • PF • Undo";
+    el("hdrSub").textContent = "";
 
-    // subscribe game doc
     unsubGame = onSnapshot(gameRef(id), (snap)=>{
       if (!snap.exists()){
         alert("Game not found.");
@@ -636,14 +643,12 @@ async function createGame(){
       connLabel.textContent = "ERROR";
     });
 
-    // subscribe events (latest 80)
     const eq = query(eventsCol(id), orderBy("ts","desc"), limit(80));
     unsubEvents = onSnapshot(eq, (snap)=>{
       const ev = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderEvents(ev);
     });
 
-    // subscribe rosters
     unsubPlayersA = onSnapshot(query(playersCol(id,"A"), orderBy("name","asc")), (snap)=>{
       const players = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderPlayers("A", players);
@@ -659,8 +664,9 @@ async function createGame(){
     gameCourt.textContent = "Court " + g.court;
     gameQuarter.textContent = "Q" + g.quarter;
 
-    teamAName.value = g.teamAName;
-    teamBName.value = g.teamBName;
+    // avoid cursor-jumping: only set if different
+    if (teamAName.value !== g.teamAName) teamAName.value = g.teamAName;
+    if (teamBName.value !== g.teamBName) teamBName.value = g.teamBName;
 
     teamALabel.textContent = g.teamAName;
     teamBLabel.textContent = g.teamBName;
@@ -679,10 +685,9 @@ async function createGame(){
     sumTF.textContent = `${g.teamFoulsA}-${g.teamFoulsB}`;
     sumTO.textContent = `${g.timeoutsA}-${g.timeoutsB}`;
 
-    notes.value = g.notes ?? "";
+    if (notes.value !== (g.notes ?? "")) notes.value = g.notes ?? "";
   }
 
-  // Shared action: atomic update + event
   async function mutateGame(mutator, eventType, eventPayload){
     const id = currentGameId;
     if (!id) return;
@@ -698,9 +703,9 @@ async function createGame(){
     await addEvent(id, eventType, eventPayload);
   }
 
-  // Quarter rules:
-  // - team fouls reset each quarter
-  // - halftime: moving from Q2->Q3 caps timeouts remaining to max 2
+  // Rules:
+  // - Team fouls reset each quarter
+  // - Halftime (moving into Q3): remaining timeouts capped to 2
   async function setQuarter(newQ){
     newQ = clamp0(newQ);
     if (newQ < 1 || newQ > 4) return;
@@ -710,21 +715,17 @@ async function createGame(){
 
       g.quarter = newQ;
 
-      // reset team fouls if quarter changed
       if (newQ !== oldQ){
         g.teamFoulsA = 0;
         g.teamFoulsB = 0;
       }
 
-      // halftime rule: if moving into Q3, cap remaining timeouts to 2
-      // (use-it-or-lose-it: max carry to second half is 2)
       if (oldQ <= 2 && newQ >= 3){
         g.timeoutsA = Math.min(g.timeoutsA, 2);
         g.timeoutsB = Math.min(g.timeoutsB, 2);
       }
-
       return g;
-    }, "QUARTER_SET", { label: `Quarter set to Q${newQ} (TF reset; halftime cap applied if Q3+)` });
+    }, "QUARTER_SET", { label: `Quarter set to Q${newQ}` });
   }
 
   async function adjust(path, delta, label){
@@ -742,79 +743,52 @@ async function createGame(){
     }, "SET", { label, value, path });
   }
 
-  // Undo: delete latest event AND reverse its effect for ADJUST/SET/PF updates.
-  // We keep undo simple: only undo the latest event in the log we created (not notes typing).
-  async function undoLast(){
-    const id = currentGameId;
-    if (!id) return;
-
-    // Read latest event doc
-    const latestQ = query(eventsCol(id), orderBy("ts","desc"), limit(1));
-    const unsub = onSnapshot(latestQ, async (snap)=>{
-      unsub();
-      if (snap.empty) return;
-      const d = snap.docs[0];
-      const e = d.data();
-
-      // Undo only supported types
-      if (e.type === "ADJUST"){
-        await adjust(e.path, -clamp0(e.delta) * (e.delta >= 0 ? 1 : -1), `UNDO ${e.label}`);
-        // The above line is messy; better: reverse exact delta with sign:
-        // We'll fix properly below.
-      }
-    });
-  }
-
-  // Better undo (reverse exact delta)
+  // Undo: supports ADJUST and PF. (SET undo intentionally blocked.)
   async function undoLastSafe(){
     const id = currentGameId;
     if (!id) return;
 
-    // get latest event via getDoc isn’t available for query; easiest: one-time snapshot then proceed.
     const latestQ = query(eventsCol(id), orderBy("ts","desc"), limit(1));
-    let latestDoc = null;
     const stop = onSnapshot(latestQ, (snap)=>{
       stop();
-      latestDoc = snap.empty ? null : snap.docs[0];
       (async ()=>{
-        if (!latestDoc) return;
-
+        if (snap.empty) return;
+        const latestDoc = snap.docs[0];
         const e = latestDoc.data();
-        const reverse = async () => {
-          if (e.type === "ADJUST" && typeof e.delta === "number" && typeof e.path === "string"){
-            await mutateGame((g)=>{
-              g[e.path] = clamp0((g[e.path] ?? 0) - e.delta);
-              return g;
-            }, "UNDO", { label: `Undo: ${e.label}` });
-            await deleteDoc(latestDoc.ref);
-            return;
-          }
-          if (e.type === "SET" && typeof e.value === "number" && typeof e.path === "string"){
-            // Can't know previous value unless stored. So for SET we skip undo.
-            alert("Undo for 'Set…' actions is disabled (needs previous value tracking). Use Adjust buttons instead.");
-            return;
-          }
-          if (e.type === "PF" && e.team && e.playerId && typeof e.delta === "number"){
-            // reverse player foul
-            const pref = doc(db, "games", id, "players_" + e.team, e.playerId);
-            await runTransaction(db, async (tx)=>{
-              const ps = await tx.get(pref);
-              if (!ps.exists()) return;
-              const p = ps.data();
-              tx.update(pref, { pf: clamp0((p.pf ?? 0) - e.delta) });
-            });
-            await addEvent(id, "UNDO", { label: `Undo: PF ${e.delta > 0 ? "+" : ""}${e.delta}` });
-            await deleteDoc(latestDoc.ref);
-            return;
-          }
-          alert("Undo not supported for that action.");
-        };
-        await reverse();
+
+        if (e.type === "ADJUST" && typeof e.delta === "number" && typeof e.path === "string"){
+          await mutateGame((g)=>{
+            g[e.path] = clamp0((g[e.path] ?? 0) - e.delta);
+            return g;
+          }, "UNDO", { label: `Undo: ${e.label}` });
+          await deleteDoc(latestDoc.ref);
+          return;
+        }
+
+        if (e.type === "SET"){
+          alert("Undo for 'Set…' actions is disabled. Use +/- instead.");
+          return;
+        }
+
+        if (e.type === "PF" && e.team && e.playerId && typeof e.delta === "number"){
+          const pref = doc(db, "games", id, "players_" + e.team, e.playerId);
+          await runTransaction(db, async (tx)=>{
+            const ps = await tx.get(pref);
+            if (!ps.exists()) return;
+            const p = ps.data();
+            tx.update(pref, { pf: clamp0((p.pf ?? 0) - e.delta) });
+          });
+          await addEvent(id, "UNDO", { label: `Undo PF` });
+          await deleteDoc(latestDoc.ref);
+          return;
+        }
+
+        alert("Undo not supported for that action.");
       })().catch(console.error);
     });
   }
 
-  // Players rendering + actions
+  // Players
   let playersCacheA = [];
   let playersCacheB = [];
 
@@ -834,7 +808,7 @@ async function createGame(){
   function renderPfTable(){
     const rows = [];
     const add = (team, list) => {
-      const tn = (team === "A") ? (teamAName.value || "Team A") : (teamBName.value || "Team B");
+      const tn = team === "A" ? (teamAName.value || "Team A") : (teamBName.value || "Team B");
       const sorted = list.slice().sort((a,b)=> (b.pf??0)-(a.pf??0) || (a.name||"").localeCompare(b.name||""));
       for (const p of sorted){
         rows.push([tn, p.name, String(p.pf ?? 0)]);
@@ -847,7 +821,11 @@ async function createGame(){
       <thead><tr><th>Team</th><th>Player</th><th style="text-align:right">PF</th></tr></thead>
       <tbody>
         ${rows.length ? rows.map(r=>`
-          <tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td style="text-align:right"><b>${escapeHtml(r[2])}</b></td></tr>
+          <tr>
+            <td>${escapeHtml(r[0])}</td>
+            <td>${escapeHtml(r[1])}</td>
+            <td style="text-align:right"><b>${escapeHtml(r[2])}</b></td>
+          </tr>
         `).join("") : `<tr><td colspan="3" class="tiny">Add players to track personal fouls.</td></tr>`}
       </tbody>
     `;
@@ -867,7 +845,6 @@ async function createGame(){
     if (!id) return;
     if (!confirm(`Clear roster for Team ${team}?`)) return;
 
-    // Brutal but simple for now: delete docs one by one from cache
     const list = team === "A" ? playersCacheA : playersCacheB;
     for (const p of list){
       await deleteDoc(doc(db, "games", id, "players_" + team, p.id));
@@ -903,7 +880,6 @@ async function createGame(){
         e.type === "ADJUST" ? "warn" :
         e.type === "PF" ? "bad" :
         e.type === "QUARTER_SET" ? "warn" :
-        e.type === "ROSTER" ? "" :
         e.type === "GAME_CREATE" ? "good" :
         e.type === "UNDO" ? "warn" : "";
       return `
@@ -918,13 +894,11 @@ async function createGame(){
     }).join("");
   }
 
-  // ---- Wire UI actions
+  // ---- Wiring
   createGameBtn.addEventListener("click", createGame);
   el("refreshBtn").addEventListener("click", ()=> location.reload());
-
   navLobbyBtn.addEventListener("click", ()=> location.hash = "#");
 
-  // Score/TF/TO buttons
   document.querySelectorAll("[data-act]").forEach(btn=>{
     btn.addEventListener("click", async ()=>{
       const act = btn.dataset.act;
@@ -957,7 +931,6 @@ async function createGame(){
     });
   });
 
-  // Quarter change
   qUpBtn.addEventListener("click", async ()=>{
     const q = clamp0(gameQuarter.textContent.replace("Q",""));
     await setQuarter(Math.min(4, q + 1));
@@ -967,7 +940,6 @@ async function createGame(){
     await setQuarter(Math.max(1, q - 1));
   });
 
-  // Names + notes (live)
   teamAName.addEventListener("input", async ()=>{
     if (!currentGameId) return;
     await updateDoc(gameRef(currentGameId), { teamAName: teamAName.value || "Team A", updatedAt: serverTimestamp() });
@@ -987,7 +959,6 @@ async function createGame(){
     }, 600);
   });
 
-  // PF
   pfTeam.addEventListener("change", refreshPfDropdown);
   addPlayerBtn.addEventListener("click", async ()=>{
     await addPlayer(pfTeam.value, addPlayerInput.value);
@@ -999,27 +970,25 @@ async function createGame(){
   clearRosterBtn.addEventListener("click", ()=> clearRoster(pfTeam.value));
 
   quickNoteBtn.addEventListener("click", async ()=>{
-    const t = prompt("Quick note (tech / incident / ref feedback):");
+    const t = prompt("Quick note:");
     if (t == null) return;
-    const stamp = `[${new Date().toLocaleTimeString()} Q${gameQuarter.textContent.replace("Q","")}] ${t}`;
+    const stamp = `[${new Date().toLocaleTimeString()} ${gameQuarter.textContent}] ${t}`;
     notes.value = (notes.value ? notes.value + "\n" : "") + stamp;
     await updateDoc(gameRef(currentGameId), { notes: notes.value, updatedAt: serverTimestamp() });
     await addEvent(currentGameId, "NOTE", { label: "Quick note added" });
   });
 
-  // End game
   endGameBtn.addEventListener("click", async ()=>{
     if (!currentGameId) return;
-    if (!confirm("End game? This removes it from the live lobby list.")) return;
+    if (!confirm("End game?")) return;
     await updateDoc(gameRef(currentGameId), { status: "final", updatedAt: serverTimestamp() });
     await addEvent(currentGameId, "GAME_END", { label: "Game ended" });
     location.hash = "#";
   });
 
-  // Undo (supports ADJUST and PF; SET undo disabled)
   undoBtn.addEventListener("click", undoLastSafe);
 
-  // ---- Routing
+  // Routing
   function route(){
     const h = location.hash || "#";
     if (h.startsWith("#game=")){
@@ -1029,15 +998,12 @@ async function createGame(){
       showLobby();
     }
   }
-  
-  // Live lobby subscription stays on; game view subscriptions replace it.
-  const unsubLobby = subscribeLobby();
-
-  // hash routing
   window.addEventListener("hashchange", route);
-  route();
 
+  // Start lobby
+  unsubLobby = subscribeLobby();
   connLabel.textContent = "LIVE";
+  route();
 </script>
 </body>
 </html>
